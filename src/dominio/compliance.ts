@@ -1,8 +1,8 @@
-import { CATALOGO, TASK, type Task } from './catalogo';
+import { indice, type ProgrammaPratico, type Task } from './programmi';
 import type { Registrazione } from './tipi';
 
 /**
- * Compliance Report (Allegato 1, cap. 4). Un frequentatore è conforme quando:
+ * Compliance Report (Allegato 1, cap. 4) della parte pratica. Un frequentatore è conforme quando:
  * ≥50% dei task eseguiti per ciascun modulo, ≥50% per ciascun task type,
  * ≥1 task eseguito per ciascun chapter. Più registrazioni dello stesso task contano una volta.
  */
@@ -62,16 +62,12 @@ const totale = (task: readonly Task[], eseguiti: Set<number>): Totale => {
   return { previsti: task.length, eseguiti: fatti, percentuale: perc(fatti, task.length) ?? 0 };
 };
 
-export function calcolaReport(registrazioni: readonly Pick<Registrazione, 'task_id'>[]): Report {
+export function calcolaReport(registrazioni: readonly Pick<Registrazione, 'task_id'>[], programma: ProgrammaPratico): Report {
   const eseguiti = new Set(registrazioni.map((r) => r.task_id));
-  const perTipo = CATALOGO.taskType.map((t) =>
-    riga(t.codice, t.descrizione, TASK.filter((x) => x.tipo === t.codice), eseguiti, 'meta'),
-  );
-  const perChapter = CATALOGO.chapter.map((c) => riga(c.codice, c.titolo, TASK.filter((x) => x.chapter === c.codice), eseguiti, 'uno'));
-  const perModulo = CATALOGO.moduli.map((m) =>
-    riga(String(m.numero), `Modulo ${m.numero}`, TASK.filter((x) => x.modulo === m.numero), eseguiti, 'meta'),
-  );
-  const p66 = new Set(CATALOGO.moduli.filter((m) => m.p66).map((m) => m.numero));
+  const perTipo = programma.taskType.map((t) => riga(t.codice, t.descrizione, programma.task.filter((x) => x.tipo === t.codice), eseguiti, 'meta'));
+  const perChapter = programma.chapter.map((c) => riga(c.codice, c.titolo, programma.task.filter((x) => x.chapter === c.codice), eseguiti, 'uno'));
+  const perModulo = programma.moduli.map((m) => riga(String(m.numero), `Modulo ${m.numero}`, programma.task.filter((x) => x.modulo === m.numero), eseguiti, 'meta'));
+  const p66 = new Set(programma.moduli.filter((m) => m.p66).map((m) => m.numero));
   const tutte = [...perTipo, ...perChapter, ...perModulo];
   return {
     eseguiti,
@@ -79,13 +75,24 @@ export function calcolaReport(registrazioni: readonly Pick<Registrazione, 'task_
     perChapter,
     perModulo,
     totaleP66: totale(
-      TASK.filter((t) => p66.has(t.modulo)),
+      programma.task.filter((t) => p66.has(t.modulo)),
       eseguiti,
     ),
-    totale: totale(TASK, eseguiti),
+    totale: totale(programma.task, eseguiti),
     conforme: tutte.every((r) => r.conforme !== false),
   };
 }
+
+/** Report vuoto, per i frequentatori di un corso senza parte pratica. */
+export const reportVuoto = (): Report => ({
+  eseguiti: new Set(),
+  perTipo: [],
+  perChapter: [],
+  perModulo: [],
+  totaleP66: { previsti: 0, eseguiti: 0, percentuale: 0 },
+  totale: { previsti: 0, eseguiti: 0, percentuale: 0 },
+  conforme: false,
+});
 
 /** Requisiti non ancora soddisfatti, nell'ordine del report. */
 export function requisitiMancanti(r: Report) {
@@ -97,3 +104,5 @@ export function requisitiMancanti(r: Report) {
 }
 
 export const formatoPercentuale = (p: number | null) => (p == null ? '—' : `${p.toLocaleString('it-IT', { maximumFractionDigits: 1 })}%`);
+
+export const indiceProgramma = indice;

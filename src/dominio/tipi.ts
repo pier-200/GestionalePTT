@@ -1,7 +1,8 @@
-/** Modello dati condiviso (PROGETTO_Logbook_PTT.md §6). Date in formato YYYY-MM-DD, istanti ISO. */
+/** Modello dati condiviso. Date in formato YYYY-MM-DD, istanti ISO. */
 
 export type ID = string;
-export type Ruolo = 'admin' | 'instructor' | 'trainee';
+export type Ruolo = 'admin' | 'direttore' | 'instructor' | 'trainee';
+export type RuoloCorso = 'direttore' | 'instructor' | 'trainee';
 export type TipoEsecuzione = 'AC' | 'SIM' | 'CLA';
 
 export interface Utente {
@@ -9,13 +10,41 @@ export interface Utente {
   username: string;
   ruolo: Ruolo;
   attivo: boolean;
-  /** Nome mostrato per admin e istruttori (i frequentatori usano i Personal Data). */
+  /** Nome mostrato per TM, direttori e istruttori (i frequentatori usano i Personal Data). */
   nome: string;
-  /** Account istruttore collegato alla voce dell'elenco istruttori. */
+  /** Account istruttore collegato alla voce dell'elenco istruttori pratici. */
   istruttore_id: ID | null;
   deve_cambiare_password: boolean;
   created_at: string;
   updated_at: string;
+}
+
+/** Un corso: parte teorica (MTT) e/o parte pratica (PTT), ciascuna con il suo programma. */
+export interface Corso {
+  id: ID;
+  codice: string;
+  nome: string;
+  programma_teorico: string | null;
+  programma_pratico: string | null;
+  data_inizio: string | null;
+  data_fine: string | null;
+  maintenance_organization: string;
+  location: string;
+  /** Ora della prima lezione, per calcolare gli orari del programma settimanale. */
+  ora_inizio: string;
+  /** Minuti di lezione disponibili da lunedì a venerdì. */
+  minuti_giorno: number[];
+  attivo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Iscrizione {
+  id: ID;
+  corso_id: ID;
+  user_id: ID;
+  ruolo: RuoloCorso;
+  created_at: string;
 }
 
 export interface Anagrafica {
@@ -31,7 +60,9 @@ export interface Anagrafica {
   updated_by: ID | null;
 }
 
+/** Practical type training data del frequentatore, per corso. */
 export interface DatiTraining {
+  corso_id: ID;
   user_id: ID;
   data_inizio: string | null;
   data_fine: string | null;
@@ -52,6 +83,7 @@ export interface Istruttore {
 
 export interface Registrazione {
   id: ID;
+  corso_id: ID;
   user_id: ID;
   task_id: number;
   maintenance_location: string;
@@ -67,18 +99,63 @@ export interface Registrazione {
   modificato_da: ID | null;
 }
 
+/** Lezione della parte teorica: una fetta di materia in un giorno. */
+export interface Lezione {
+  id: ID;
+  corso_id: ID;
+  data: string;
+  /** Posizione nella giornata (0 = prima lezione). */
+  ordine: number;
+  minuti: number;
+  materia: string;
+  istruttore_id: ID | null;
+  note: string;
+  creato_il: string;
+  modificato_il: string;
+  modificato_da: ID | null;
+}
+
+/** Materia che un istruttore è abilitato a erogare. */
+export interface Abilitazione {
+  id: ID;
+  user_id: ID;
+  programma: string;
+  materia: string;
+}
+
 export interface Dati {
   utenti: Utente[];
+  corsi: Corso[];
+  iscrizioni: Iscrizione[];
   anagrafiche: Anagrafica[];
   training: DatiTraining[];
   istruttori: Istruttore[];
   registrazioni: Registrazione[];
+  lezioni: Lezione[];
+  abilitazioni: Abilitazione[];
 }
 
-export const datiVuoti = (): Dati => ({ utenti: [], anagrafiche: [], training: [], istruttori: [], registrazioni: [] });
+export const datiVuoti = (): Dati => ({
+  utenti: [],
+  corsi: [],
+  iscrizioni: [],
+  anagrafiche: [],
+  training: [],
+  istruttori: [],
+  registrazioni: [],
+  lezioni: [],
+  abilitazioni: [],
+});
 
 export const ETICHETTA_RUOLO: Record<Ruolo, string> = {
   admin: 'Training Manager',
+  direttore: 'Direttore del corso',
+  instructor: 'Istruttore',
+  trainee: 'Frequentatore',
+};
+
+export const ETICHETTA_RUOLO_CORSO: Record<RuoloCorso, string> = {
+  direttore: 'Direttore',
   instructor: 'Istruttore',
   trainee: 'Frequentatore',
 };

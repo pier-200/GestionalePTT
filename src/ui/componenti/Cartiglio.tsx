@@ -1,13 +1,14 @@
-import { CATALOGO } from '../../dominio/catalogo';
+import { programmaPratico } from '../../dominio/programmi';
 import { formatoPercentuale } from '../../dominio/compliance';
-import type { Dati, Utente } from '../../dominio/tipi';
+import type { Corso, Dati, Utente } from '../../dominio/tipi';
 import { formatoData, type Situazione } from '../../dominio/viste';
 import { Ciambella, Timbro } from './disegno';
 
 /** Cartiglio della tavola: identità del frequentatore, aeromobile, periodo ed esito. */
-export function Cartiglio({ dati, utente, s }: { dati: Dati; utente: Utente; s: Situazione }) {
+export function Cartiglio({ dati, corso, utente, s }: { dati: Dati; corso: Corso; utente: Utente; s: Situazione }) {
   const a = dati.anagrafiche.find((x) => x.user_id === utente.id);
-  const t = dati.training.find((x) => x.user_id === utente.id);
+  const t = dati.training.find((x) => x.user_id === utente.id && x.corso_id === corso.id) ?? corso;
+  const p = programmaPratico(corso.programma_pratico);
   return (
     <div className="cartiglio">
       <div className="c-nome">
@@ -36,12 +37,12 @@ export function Cartiglio({ dati, utente, s }: { dati: Dati; utente: Utente; s: 
       </div>
       <div className="c-2">
         <span className="etichetta">A/C type</span>
-        <div className="valore codice">{CATALOGO.aeromobile}</div>
+        <div className="valore codice">{p?.aeromobile ?? '—'}</div>
       </div>
       <div className="c-2">
         <span className="etichetta">Engine · Cat.</span>
         <div className="valore codice">
-          {CATALOGO.motore} · {CATALOGO.categoria}
+          {p?.motore ?? '—'} · {p?.categoria ?? '—'}
         </div>
       </div>
       <div className="c-2 c-luogo">

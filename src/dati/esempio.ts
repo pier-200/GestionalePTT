@@ -1,13 +1,19 @@
-import { TASK, type Task } from '../dominio/catalogo';
+import { generaSettimana, lunediDi, sommaGiorni } from '../dominio/pianificazione';
 import { minimoMeta } from '../dominio/compliance';
-import type { Anagrafica, Dati, DatiTraining, Istruttore, Registrazione, TipoEsecuzione, Utente } from '../dominio/tipi';
+import { PROGRAMMI_PRATICI, PROGRAMMI_TEORICI, type Task } from '../dominio/programmi';
+import type { Abilitazione, Anagrafica, Corso, Dati, DatiTraining, Iscrizione, Istruttore, Lezione, Registrazione, TipoEsecuzione, Utente } from '../dominio/tipi';
 
 /**
  * Situazione esempio SINTETICA per la modalità dimostrativa: persone, matricole e
  * approvazioni sono inventate. Generata in modo deterministico (stesso seme, stessi dati).
+ * Due corsi: uno in svolgimento (teoria conclusa, pratica in corso) e uno appena iniziato (solo teoria).
  */
 
 export const PASSWORD_DEMO = 'ptt-demo-2026';
+
+const PRATICO = PROGRAMMI_PRATICI[0];
+const TEORICO = PROGRAMMI_TEORICI[0];
+const TASK = PRATICO.task;
 
 function generatore(seme: number) {
   let a = seme;
@@ -34,6 +40,8 @@ function generatore(seme: number) {
 
 const INIZIO = '2026-07-06';
 const ISTANTE_BASE = '2026-07-01T08:00:00.000Z';
+const CORSO_1 = 'c-2026-1';
+const CORSO_2 = 'c-2026-2';
 
 const ISTRUTTORI: Istruttore[] = [
   ['ist-rinaldi', 'Mar. Ca.', 'Paolo', 'Rinaldi'],
@@ -75,6 +83,13 @@ const FREQUENTATORI: Profilo[] = [
   { id: 'u-costa', username: 'francesca.costa', anagrafica: ['Serg.', 'Francesca', 'Costa', '1997-01-09', 'Bracciano', ''], obiettivo: { conforme: 'no', task: 44 } },
   { id: 'u-ricci', username: 'luca.ricci', anagrafica: ['C.le Magg. Ca.', 'Luca', 'Ricci', '1995-05-30', 'Orvieto', ''], obiettivo: { conforme: 'no', task: 19 } },
   { id: 'u-fontana', username: 'simone.fontana', anagrafica: null, obiettivo: { conforme: 'no', task: 0 } },
+];
+
+/** Frequentatori del secondo corso (solo teoria, appena iniziato). */
+const NUOVI: Profilo[] = [
+  { id: 'u-marchetti', username: 'davide.marchetti', anagrafica: ['Serg.', 'Davide', 'Marchetti', '1999-02-14', 'Terni', ''], obiettivo: { conforme: 'no', task: 0 } },
+  { id: 'u-pellegrini', username: 'sara.pellegrini', anagrafica: ['C.le Magg. Sc.', 'Sara', 'Pellegrini', '1998-09-03', 'Perugia', ''], obiettivo: { conforme: 'no', task: 0 } },
+  { id: 'u-esposito', username: 'nicola.esposito', anagrafica: ['Serg. Magg.', 'Nicola', 'Esposito', '1993-12-21', 'Napoli', ''], obiettivo: { conforme: 'no', task: 0 } },
 ];
 
 /** Giorni lavorativi del corso fino a ieri (rispetto al 22/09/2026, data di preparazione dell'esempio). */
@@ -137,6 +152,7 @@ function registrazioni(p: Profilo, g: ReturnType<typeof generatore>): Registrazi
       const ora = `${data}T${String(g.tra(13, 17)).padStart(2, '0')}:${String(g.tra(0, 59)).padStart(2, '0')}:00.000Z`;
       elenco.push({
         id: `r-${p.id.slice(2)}-${t.id}-${v}`,
+        corso_id: CORSO_1,
         user_id: p.id,
         task_id: t.id,
         maintenance_location: tipo === 'AC' ? g.uno(['Viterbo – Hangar 3', 'Viterbo – Hangar 3', 'Viterbo – Linea volo']) : tipo === 'SIM' ? 'Viterbo – Simulatore CH-47F' : 'Viterbo – Aula didattica 2',
@@ -160,9 +176,96 @@ function registrazioni(p: Profilo, g: ReturnType<typeof generatore>): Registrazi
   return elenco;
 }
 
+const corso = (id: string, codice: string, nome: string, extra: Partial<Corso>): Corso => ({
+  id,
+  codice,
+  nome,
+  programma_teorico: TEORICO.id,
+  programma_pratico: PRATICO.id,
+  data_inizio: INIZIO,
+  data_fine: '2026-10-02',
+  maintenance_organization: '1° Reggimento AVES "Antares" – appr. DAAA n. 00/ESEMPIO',
+  location: 'Viterbo',
+  ora_inizio: '08:30',
+  minuti_giorno: [360, 360, 360, 360, 180],
+  attivo: true,
+  created_at: ISTANTE_BASE,
+  updated_at: ISTANTE_BASE,
+  ...extra,
+});
+
+/** Lezioni del secondo corso: prime settimane già a calendario. */
+function lezioniEsempio(corsoId: string, inizio: string, settimane: number, docenti: string[], g: ReturnType<typeof generatore>): Lezione[] {
+  const lezioni: Lezione[] = [];
+  let lunedi = lunediDi(inizio);
+  for (let s = 0; s < settimane; s++) {
+    for (const p of generaSettimana(TEORICO, lezioni, lunedi, { istruttorePerMateria: () => g.uno(docenti) })) {
+      lezioni.push({
+        id: `l-${corsoId}-${lezioni.length}`,
+        corso_id: corsoId,
+        data: p.data,
+        ordine: p.ordine,
+        minuti: p.minuti,
+        materia: p.materia,
+        istruttore_id: p.istruttore_id,
+        note: '',
+        creato_il: ISTANTE_BASE,
+        modificato_il: ISTANTE_BASE,
+        modificato_da: 'u-tm',
+      });
+    }
+    lunedi = sommaGiorni(lunedi, 7);
+  }
+  return lezioni;
+}
+
 export function datiEsempio(): Dati {
   const g = generatore(147);
+  const tutti = [...FREQUENTATORI, ...NUOVI];
+  const anagrafiche: Anagrafica[] = tutti
+    .filter((p) => p.anagrafica)
+    .map((p) => {
+      const [grado, nome, cognome, data_nascita, citta_nascita, maml] = p.anagrafica!;
+      return { user_id: p.id, grado, nome, cognome, data_nascita, citta_nascita, maml, updated_at: '2026-07-06T09:00:00.000Z', updated_by: p.id };
+    });
+  const fontana = utente('u-fontana', 'simone.fontana', 'trainee');
+  fontana.created_at = fontana.updated_at = '2026-09-21T10:00:00.000Z';
+
+  const corsi: Corso[] = [
+    corso(CORSO_1, 'T1-2026/1', 'T1 Type Training CH-47F Cat. B1.3 – 1° corso 2026', {}),
+    corso(CORSO_2, 'T1-2026/2', 'T1 Type Training CH-47F Cat. B1.3 – 2° corso 2026', {
+      data_inizio: '2026-09-14',
+      data_fine: '2027-03-31',
+      programma_pratico: null,
+      created_at: '2026-09-10T08:00:00.000Z',
+    }),
+  ];
+
+  const utenti: Utente[] = [
+    utente('u-tm', 'tm.ferri', 'admin', 'Magg. Luca Ferri'),
+    utente('u-neri', 'marco.neri', 'direttore', 'Cap. Marco Neri'),
+    utente('u-rinaldi', 'paolo.rinaldi', 'instructor', 'Mar. Ca. Paolo Rinaldi', 'ist-rinaldi'),
+    utente('u-colombo', 'andrea.colombo', 'instructor', 'Lgt. Andrea Colombo', 'ist-colombo'),
+    utente('u-greco', 'stefano.greco', 'instructor', '1° Mar. Stefano Greco', 'ist-greco'),
+    ...FREQUENTATORI.filter((p) => p.id !== 'u-fontana').map((p) => utente(p.id, p.username, 'trainee')),
+    fontana,
+    ...NUOVI.map((p) => utente(p.id, p.username, 'trainee')),
+  ];
+
+  const iscrizione = (corso_id: string, user_id: string, ruolo: Iscrizione['ruolo']): Iscrizione => ({ id: `i-${corso_id}-${user_id}`, corso_id, user_id, ruolo, created_at: ISTANTE_BASE });
+  const iscrizioni: Iscrizione[] = [
+    ...FREQUENTATORI.map((p) => iscrizione(CORSO_1, p.id, 'trainee')),
+    iscrizione(CORSO_1, 'u-neri', 'direttore'),
+    iscrizione(CORSO_1, 'u-rinaldi', 'instructor'),
+    iscrizione(CORSO_1, 'u-colombo', 'instructor'),
+    ...NUOVI.map((p) => iscrizione(CORSO_2, p.id, 'trainee')),
+    iscrizione(CORSO_2, 'u-neri', 'direttore'),
+    iscrizione(CORSO_2, 'u-rinaldi', 'instructor'),
+    iscrizione(CORSO_2, 'u-greco', 'instructor'),
+  ];
+
   const training: DatiTraining[] = FREQUENTATORI.map((p) => ({
+    corso_id: CORSO_1,
     user_id: p.id,
     data_inizio: INIZIO,
     data_fine: '2026-10-02',
@@ -171,23 +274,25 @@ export function datiEsempio(): Dati {
     updated_at: ISTANTE_BASE,
     updated_by: 'u-tm',
   }));
-  const anagrafiche: Anagrafica[] = FREQUENTATORI.filter((p) => p.anagrafica).map((p) => {
-    const [grado, nome, cognome, data_nascita, citta_nascita, maml] = p.anagrafica!;
-    return { user_id: p.id, grado, nome, cognome, data_nascita, citta_nascita, maml, updated_at: '2026-07-06T09:00:00.000Z', updated_by: p.id };
+
+  // abilitazioni: ogni istruttore copre una fetta del programma teorico, il direttore le materie introduttive
+  const abilitazioni: Abilitazione[] = [];
+  const docentiCorso2 = ['u-rinaldi', 'u-greco', 'u-neri'];
+  TEORICO.materie.forEach((m, i) => {
+    for (const u of [docentiCorso2[i % docentiCorso2.length], 'u-colombo'].slice(0, i % 3 === 0 ? 2 : 1)) {
+      abilitazioni.push({ id: `${u}|${TEORICO.id}|${m.id}`, user_id: u, programma: TEORICO.id, materia: m.id });
+    }
   });
-  const fontana = utente('u-fontana', 'simone.fontana', 'trainee');
-  fontana.created_at = fontana.updated_at = '2026-09-21T10:00:00.000Z';
+
   return {
-    utenti: [
-      utente('u-tm', 'tm.ferri', 'admin', 'Magg. Luca Ferri'),
-      utente('u-rinaldi', 'paolo.rinaldi', 'instructor', 'Mar. Ca. Paolo Rinaldi', 'ist-rinaldi'),
-      utente('u-colombo', 'andrea.colombo', 'instructor', 'Lgt. Andrea Colombo', 'ist-colombo'),
-      ...FREQUENTATORI.filter((p) => p.id !== 'u-fontana').map((p) => utente(p.id, p.username, 'trainee')),
-      fontana,
-    ],
+    utenti,
+    corsi,
+    iscrizioni,
     anagrafiche,
     training,
     istruttori: ISTRUTTORI,
     registrazioni: FREQUENTATORI.flatMap((p) => registrazioni(p, g)),
+    lezioni: [...lezioniEsempio(CORSO_1, INIZIO, 3, ['u-rinaldi', 'u-colombo', 'u-neri'], g), ...lezioniEsempio(CORSO_2, '2026-09-14', 2, docentiCorso2, g)],
+    abilitazioni,
   };
 }

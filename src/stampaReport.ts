@@ -1,8 +1,9 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
 import layout from './dati/layout-compliance.json';
 import { calcolaReport, formatoPercentuale, type Report, type RigaReport, type Totale } from './dominio/compliance';
+import { programmaPratico } from './dominio/programmi';
 import { oggiISO } from './dominio/motore';
-import type { Dati, Utente } from './dominio/tipi';
+import type { Corso, Dati, Utente } from './dominio/tipi';
 import { formatoData, registrazioniDi } from './dominio/viste';
 
 /**
@@ -32,7 +33,9 @@ function valori(r: Report, chiave: string): Pick<RigaReport, 'eseguiti' | 'previ
   return elenco.find((x) => normalizza(x.codice) === codice);
 }
 
-export async function creaCompliancePdf(dati: Dati, utente: Utente, modello: ArrayBuffer, logo?: ArrayBuffer | null): Promise<Uint8Array> {
+export async function creaCompliancePdf(dati: Dati, corso: Corso, utente: Utente, modello: ArrayBuffer, logo?: ArrayBuffer | null): Promise<Uint8Array> {
+  const programma = programmaPratico(corso.programma_pratico);
+  if (!programma) throw new Error('Il corso non prevede la parte pratica.');
   const pdf = await PDFDocument.load(modello);
   const normale = await pdf.embedFont(StandardFonts.Helvetica);
   const grassetto = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -40,9 +43,9 @@ export async function creaCompliancePdf(dati: Dati, utente: Utente, modello: Arr
   const ammessi = new Set(normale.getCharacterSet());
   const sicuro = (s: string) => [...s].map((c) => (ammessi.has(c.codePointAt(0)!) ? c : '?')).join('');
 
-  const report = calcolaReport(registrazioniDi(dati, utente.id));
+  const report = calcolaReport(registrazioniDi(dati, corso.id, utente.id), programma);
   const a = dati.anagrafiche.find((x) => x.user_id === utente.id);
-  const t = dati.training.find((x) => x.user_id === utente.id);
+  const t = dati.training.find((x) => x.user_id === utente.id && x.corso_id === corso.id) ?? corso;
 
   /** Testo centrato (o allineato a sinistra) sulla linea di base, rimpicciolito se non entra in `massimo`. */
   const scrivi = (pagina: PDFPage, testo: string, x: number, base: number, font: PDFFont, corpo: number, centro = true, massimo = Infinity) => {
@@ -123,12 +126,12 @@ export async function creaCompliancePdf(dati: Dati, utente: Utente, modello: Arr
     }
   }
   pdf.setTitle(`Compliance Report – ${[a?.grado, a?.nome, a?.cognome].filter(Boolean).join(' ')}`);
-  pdf.setProducer('Gestionale Practical Type Training');
+  pdf.setProducer('Gestionale Type Training');
   return pdf.save();
 }
 
 /** Dal pulsante: apre il PDF in una nuova scheda (da lì si stampa), o lo scarica se il browser blocca la finestra. */
-export async function apriCompliancePdf(dati: Dati, utente: Utente, finestra: Window | null) {
+export async function apriCompliancePdf(dati: Dati, corso: Corso, utente: Utente, finestra: Window | null) {
   const [modello, logo] = await Promise.all([
     fetch('./modelli/compliance-report.pdf').then((r) => {
       if (!r.ok) throw new Error('Modulo del Compliance Report non trovato.');
@@ -139,7 +142,7 @@ export async function apriCompliancePdf(dati: Dati, utente: Utente, finestra: Wi
       .then((r) => (r.ok && r.headers.get('content-type')?.includes('png') ? r.arrayBuffer() : null))
       .catch(() => null),
   ]);
-  const bytes = await creaCompliancePdf(dati, utente, modello, logo);
+  const bytes = await creaCompliancePdf(dati, corso, utente, modello, logo);
   const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
   const url = URL.createObjectURL(blob);
   const a = dati.anagrafiche.find((x) => x.user_id === utente.id);

@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
-import { CATALOGO } from '../../dominio/catalogo';
+import { PROGRAMMI_PRATICI } from '../../dominio/programmi';
+import { useCorso } from '../navigazione';
+import { programmaPratico } from '../../dominio/programmi';
 import { IntestazionePagina } from '../componenti/disegno';
 
 /**
@@ -19,9 +21,11 @@ function Parte({ titolo, aperta, children }: { titolo: string; aperta?: boolean;
 const E = ({ children }: { children: ReactNode }) => <mark className="evidenziato">{children}</mark>;
 
 export function Generalita() {
+  const corso = useCorso();
+  const programma = programmaPratico(corso?.programma_pratico) ?? PROGRAMMI_PRATICI[0];
   return (
     <>
-      <IntestazionePagina titolo="1. Generality and Purpose" sotto={CATALOGO.documento} />
+      <IntestazionePagina titolo="1. Generality and Purpose" sotto={programma.documento} />
       <div className="testo-documento">
         <Parte titolo="Introduction" aperta>
           <p>

@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Button } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconFileSpreadsheet, IconPrinter } from '@tabler/icons-react';
-import { CATALOGO } from '../../dominio/catalogo';
+import { programmaPratico } from '../../dominio/programmi';
 import { messaggioErrore } from '../../dominio/errori';
 import { formatoPercentuale, type RigaReport, type Totale } from '../../dominio/compliance';
-import type { Utente } from '../../dominio/tipi';
+import type { Corso, Utente } from '../../dominio/tipi';
 import { situazione } from '../../dominio/viste';
 import { esportaFrequentatore } from '../../esporta';
 import { Esito, IntestazionePagina, Timbro } from '../componenti/disegno';
@@ -13,7 +13,7 @@ import { ConFrequentatore } from '../componenti/Frequentatore';
 import { useStato } from '../stato';
 
 export function Report() {
-  return <ConFrequentatore>{(f) => <ReportDi f={f} />}</ConFrequentatore>;
+  return <ConFrequentatore>{(f, corso) => <ReportDi f={f} corso={corso} />}</ConFrequentatore>;
 }
 
 const INTESTAZIONI = ['Number of tasks applicable to the A/C type', 'Number of tasks effectively performed', 'Percentage (%) of tasks effectively performed'];
@@ -70,7 +70,7 @@ function Tabella({ colonna, righe, totali, separa, requisito }: { colonna: strin
   );
 }
 
-function ReportDi({ f }: { f: Utente }) {
+function ReportDi({ f, corso }: { f: Utente; corso: Corso }) {
   const { dati } = useStato();
   const [pdf, setPdf] = useState(false);
   if (!dati) return null;
@@ -83,7 +83,7 @@ function ReportDi({ f }: { f: Utente }) {
     setPdf(true);
     try {
       const { apriCompliancePdf } = await import('../../stampaReport');
-      await apriCompliancePdf(dati!, f, finestra);
+      await apriCompliancePdf(dati!, corso, f, finestra);
     } catch (e) {
       finestra?.close();
       notifications.show({ color: 'rosso', title: 'PDF non creato', message: messaggioErrore(e) });
@@ -91,11 +91,12 @@ function ReportDi({ f }: { f: Utente }) {
       setPdf(false);
     }
   }
-  const s = situazione(dati, f);
+  const s = situazione(dati, corso, f);
   const a = dati.anagrafiche.find((x) => x.user_id === f.id);
-  const t = dati.training.find((x) => x.user_id === f.id);
+  const t = dati.training.find((x) => x.user_id === f.id && x.corso_id === corso.id) ?? corso;
   const r = s.report;
-  const moduloDi = new Map(CATALOGO.chapter.map((c) => [c.codice, c.modulo]));
+  const p = programmaPratico(corso.programma_pratico);
+  const moduloDi = new Map((p?.chapter ?? []).map((c) => [c.codice, c.modulo]));
 
   const testata = (
     <div className="cr-testata cr-blocco">
@@ -107,12 +108,12 @@ function ReportDi({ f }: { f: Utente }) {
         <dl>
           <dt>A/C type:</dt>
           <dd>
-            <em>{CATALOGO.aeromobile}</em>
+            <em>{p?.aeromobile}</em>
           </dd>
           <dt>Type of engine installed:</dt>
-          <dd>{CATALOGO.motore}</dd>
+          <dd>{p?.motore}</dd>
           <dt>Category to extend:</dt>
-          <dd>{CATALOGO.categoria}</dd>
+          <dd>{p?.categoria}</dd>
         </dl>
       </div>
       <div className="cr-titolo">
@@ -146,7 +147,7 @@ function ReportDi({ f }: { f: Utente }) {
             <Button variant="default" leftSection={<IconPrinter size={17} />} loading={pdf} onClick={() => void stampa()}>
               Stampa / PDF
             </Button>
-            <Button variant="default" leftSection={<IconFileSpreadsheet size={17} />} onClick={() => void esportaFrequentatore(dati, f)}>
+            <Button variant="default" leftSection={<IconFileSpreadsheet size={17} />} onClick={() => void esportaFrequentatore(dati, corso, f)}>
               Excel
             </Button>
           </>

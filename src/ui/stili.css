@@ -757,7 +757,7 @@ a.quota:hover .quota-nome {
   box-sizing: border-box;
   width: 100%;
   display: grid;
-  grid-template-columns: 38px 40px minmax(0, 1fr) auto;
+  grid-template-columns: 34px 44px 38px minmax(0, 1fr) auto;
   gap: 10px;
   align-items: start;
   padding: 11px 6px;
@@ -1518,4 +1518,220 @@ mark.evidenziato {
   .solo-stretto {
     display: none;
   }
+}
+
+/* ---------- schede dei corsi (scelta del corso) ---------- */
+.schede-corso {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+}
+.scheda-corso {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 16px 18px;
+  background: var(--foglio);
+  border: 1.5px solid var(--inchiostro);
+  outline: 1px solid var(--inchiostro);
+  outline-offset: 4px;
+}
+.scheda-corso.chiuso {
+  border-style: dashed;
+  outline: 0;
+  opacity: 0.75;
+}
+.scheda-corso header h2 {
+  font-family: var(--condensato);
+  font-weight: 600;
+  font-size: 1.25rem;
+  line-height: 1.15;
+  margin: 2px 0 4px;
+}
+.scheda-corso header p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+.scheda-numeri {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  margin: 0;
+  padding: 10px 0;
+  border-top: 1px solid var(--filetto-chiaro);
+  border-bottom: 1px solid var(--filetto-chiaro);
+}
+.scheda-numeri dt {
+  font-family: var(--condensato);
+  font-weight: 600;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--inchiostro-2);
+}
+.scheda-numeri dd {
+  margin: 0;
+  font-family: var(--condensato);
+  font-weight: 600;
+  font-size: 1.25rem;
+  line-height: 1.1;
+}
+.scheda-parti {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tag-parte {
+  font-family: var(--condensato);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border: 1px solid var(--inchiostro);
+}
+.tag-parte.mtt {
+  background: var(--carta-2);
+}
+.tag-parte.ptt {
+  background: var(--evidenzia);
+}
+.tag-parte.chiuso {
+  border-color: var(--rosso-linea);
+  color: var(--rosso);
+  border-style: dashed;
+}
+
+.indice-corso {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--inchiostro);
+  background: var(--foglio);
+}
+
+/* ---------- programma settimanale ---------- */
+.settimana-testa {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--inchiostro);
+}
+.conto-scalare {
+  flex: 1 1 320px;
+  max-width: 460px;
+}
+.conto-scalare .quota {
+  grid-template-columns: 0 minmax(0, 1fr) 74px;
+  margin-top: 4px;
+}
+.conto-scalare .quota-nome {
+  display: none;
+}
+.settimana {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 900px) {
+  .settimana {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+.giorno {
+  border: 1px solid var(--inchiostro);
+  background: var(--foglio);
+  min-height: 90px;
+}
+.giorno.chiuso {
+  background: var(--carta-2);
+  border-style: dashed;
+}
+.giorno > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--inchiostro);
+  font-family: var(--condensato);
+  font-weight: 600;
+  background: var(--carta-2);
+}
+.giorno .vuoto {
+  margin: 0;
+  padding: 14px 10px;
+  font-size: 0.875rem;
+}
+.lezione {
+  display: grid;
+  gap: 6px;
+  padding: 9px 10px 11px;
+  border-bottom: 1px solid var(--filetto-chiaro);
+}
+.lezione:last-child {
+  border-bottom: 0;
+}
+.lezione-testa {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+.lezione-testa .debole {
+  margin-left: auto;
+}
+.lezione-materia {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  line-height: 1.3;
+}
+.lezione-materia strong {
+  font-size: 0.9375rem;
+}
+.palloncino.piccolo {
+  min-width: 26px;
+  height: 24px;
+  font-size: 0.75rem;
+  padding: 0 6px;
+}
+.residuo {
+  font-size: 0.75rem;
+  color: var(--inchiostro-2);
+  text-align: right;
+}
+
+/* ---------- iscritti e materie ---------- */
+.elenco-iscritti {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--filetto-chiaro);
+}
+.elenco-iscritti li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--filetto-chiaro);
+}
+.materie-scelta {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+.modulo-materie {
+  border-top: 1px solid var(--filetto-chiaro);
+  padding-top: 10px;
+}
+.materie-elenco {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  padding: 10px 0 0 26px;
 }

@@ -21,27 +21,38 @@ type ConfigGitHub = Extract<Config, { tipo: 'github' }>;
 const SESSIONE = 'github:sessione';
 const FILE_KEYRING = 'keyring.json';
 const FORMATO = 1;
-const README = `# Dati del Gestionale Practical Type Training
+const README = `# Dati del Gestionale Type Training
 
 Repository **privato** gestito dall'applicazione: non modificare i file a mano.
 Ogni salvataggio crea un commit, quindi qualsiasi versione precedente è recuperabile dalla cronologia.
 
-- \`db/utenti.json\`, \`db/anagrafiche.json\`, \`db/training.json\`, \`db/istruttori.json\`
+- \`db/utenti.json\`, \`db/corsi.json\`, \`db/iscrizioni.json\`, \`db/anagrafiche.json\`, \`db/training.json\`, \`db/istruttori.json\`, \`db/abilitazioni.json\`
 - \`db/registrazioni/<id frequentatore>.json\`: logbook di ciascun frequentatore
+- \`db/lezioni/<id corso>.json\`: programma della parte teorica
 `;
 
-/** Un file per collezione, le registrazioni divise per frequentatore (salvataggi più leggeri). */
+/** Un file per collezione; registrazioni e lezioni divise per frequentatore e per corso (salvataggi più leggeri). */
 function inFile(d: Dati): Map<string, string> {
-  const testo = (elementi: unknown[]) => `${JSON.stringify({ formato: FORMATO, elementi }, null, 1)}\n`;
+  const testo = (elementi: unknown[]) => `${JSON.stringify({ formato: FORMATO, elementi }, null, 1)}
+`;
   const file = new Map<string, string>([
     ['db/utenti.json', testo(d.utenti)],
+    ['db/corsi.json', testo(d.corsi)],
+    ['db/iscrizioni.json', testo(d.iscrizioni)],
     ['db/anagrafiche.json', testo(d.anagrafiche)],
     ['db/training.json', testo(d.training)],
     ['db/istruttori.json', testo(d.istruttori)],
+    ['db/abilitazioni.json', testo(d.abilitazioni)],
   ]);
-  const perUtente = new Map<string, unknown[]>();
-  for (const r of d.registrazioni) perUtente.set(r.user_id, [...(perUtente.get(r.user_id) ?? []), r]);
+  const raggruppa = <T,>(elementi: T[], chiave: (x: T) => string) => {
+    const m = new Map<string, T[]>();
+    for (const x of elementi) m.set(chiave(x), [...(m.get(chiave(x)) ?? []), x]);
+    return m;
+  };
+  const perUtente = raggruppa(d.registrazioni, (r) => r.user_id);
   for (const u of d.utenti) if (u.ruolo === 'trainee') file.set(`db/registrazioni/${u.id}.json`, testo(perUtente.get(u.id) ?? []));
+  const perCorso = raggruppa(d.lezioni, (l) => l.corso_id);
+  for (const c of d.corsi) file.set(`db/lezioni/${c.id}.json`, testo(perCorso.get(c.id) ?? []));
   return file;
 }
 
@@ -52,12 +63,17 @@ function daFile(file: Map<string, string>): Dati {
     if ((j.formato ?? 1) > FORMATO) throw new ErroreApp('CONFIGURAZIONE', 'Dati salvati da una versione più recente dell’applicazione: ricaricare la pagina.');
     return j.elementi ?? [];
   };
+  const raccogli = <T,>(prefisso: string) => [...file].filter(([p]) => p.startsWith(prefisso)).flatMap(([, t]) => elenco<T>(t));
   return {
     utenti: elenco(file.get('db/utenti.json')),
+    corsi: elenco(file.get('db/corsi.json')),
+    iscrizioni: elenco(file.get('db/iscrizioni.json')),
     anagrafiche: elenco(file.get('db/anagrafiche.json')),
     training: elenco(file.get('db/training.json')),
     istruttori: elenco(file.get('db/istruttori.json')),
-    registrazioni: [...file].filter(([p]) => p.startsWith('db/registrazioni/')).flatMap(([, t]) => elenco(t)),
+    abilitazioni: elenco(file.get('db/abilitazioni.json')),
+    registrazioni: raccogli('db/registrazioni/'),
+    lezioni: raccogli('db/lezioni/'),
   };
 }
 

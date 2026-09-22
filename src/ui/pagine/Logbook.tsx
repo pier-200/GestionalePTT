@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Button, CloseButton, Group, TextInput } from '@mantine/core';
 import { IconFileSpreadsheet, IconPencil, IconPlus, IconSearch, IconTrash, IconX } from '@tabler/icons-react';
-import { CATALOGO, TASK, type Task } from '../../dominio/catalogo';
+import { indice, programmaPratico, type Task } from '../../dominio/programmi';
 import { formatoPercentuale } from '../../dominio/compliance';
-import type { Registrazione, Utente } from '../../dominio/tipi';
+import type { Corso, Registrazione, Utente } from '../../dominio/tipi';
 import { esecuzione, formatoData, formatoIstante, formatoMinuti, nomeIstruttore, nomeUtente, situazione } from '../../dominio/viste';
 import { esportaCsv, esportaFrequentatore } from '../../esporta';
 import { IntestazionePagina, Palloncino } from '../componenti/disegno';
@@ -13,12 +13,12 @@ import { aggiornaQuery, usePosizione } from '../router';
 import { useStato } from '../stato';
 
 export function Logbook() {
-  return <ConFrequentatore>{(f) => <LogbookDi f={f} />}</ConFrequentatore>;
+  return <ConFrequentatore>{(f, corso) => <LogbookDi f={f} corso={corso} />}</ConFrequentatore>;
 }
 
 const normalizza = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-function LogbookDi({ f }: { f: Utente }) {
+function LogbookDi({ f, corso }: { f: Utente; corso: Corso }) {
   const { dati, utente, appena, esegui } = useStato();
   const { query } = usePosizione();
   const [aperto, setAperto] = useState<number | null>(null);
@@ -30,8 +30,10 @@ function LogbookDi({ f }: { f: Utente }) {
   const tipo = query.get('tipo');
   const ch = query.get('ch');
   const stato = query.get('stato') ?? 'tutti';
-  const s = useMemo(() => (dati ? situazione(dati, f) : null), [dati, f]);
-  if (!dati || !utente || !s) return null;
+  const programma = programmaPratico(corso.programma_pratico);
+  const s = useMemo(() => (dati ? situazione(dati, corso, f) : null), [dati, corso, f]);
+  if (!dati || !utente || !s || !programma) return null;
+  const TASK = programma.task;
   const puoScrivere = utente.ruolo === 'admin' || utente.id === f.id;
   const perTask = new Map<number, Registrazione[]>();
   for (const r of s.registrazioni) perTask.set(r.task_id, [...(perTask.get(r.task_id) ?? []), r]);
@@ -45,12 +47,12 @@ function LogbookDi({ f }: { f: Utente }) {
       (stato === 'tutti' || (stato === 'eseguiti') === perTask.has(t.id)) &&
       (!testo || normalizza(`${t.id} ${t.chapter} ${t.subject} ${t.descrizione} ${t.riferimenti} ${t.tipo}`).includes(testo)),
   );
-  const moduli = CATALOGO.moduli.map((m) => ({
+  const moduli = programma.moduli.map((m) => ({
     numero: m.numero,
-    chapter: CATALOGO.chapter.filter((c) => c.modulo === m.numero).map((c) => ({ ...c, task: visibili.filter((t) => t.chapter === c.codice) })).filter((c) => c.task.length),
+    chapter: programma.chapter.filter((c) => c.modulo === m.numero).map((c) => ({ ...c, task: visibili.filter((t) => t.chapter === c.codice) })).filter((c) => c.task.length),
   })).filter((m) => m.chapter.length);
   const filtrato = Boolean(mod || tipo || ch || stato !== 'tutti' || testo);
-  const tipi = CATALOGO.taskType.filter((t) => TASK.some((x) => x.tipo === t.codice));
+  const tipi = indice(programma).tipiApplicabili;
 
   const chip = (chiave: string, valore: string | null, etichetta: string, attivo: boolean) => (
     <button key={`${chiave}${valore}`} type="button" className="chip" aria-pressed={attivo} onClick={() => aggiornaQuery({ [chiave]: valore })}>
@@ -64,7 +66,8 @@ function LogbookDi({ f }: { f: Utente }) {
     return (
       <div key={t.id} className={`task ${regs.length ? 'eseguito' : ''} ${appena.includes(t.id) ? 'appena' : ''} ${eAperto ? 'aperto' : ''}`}>
         <button type="button" className="task-riga" aria-expanded={eAperto} onClick={() => setAperto(eAperto ? null : t.id)}>
-          <span className="task-id">{t.id}</span>
+          <span className="task-id" title={`Task ${t.id}`}>{t.id}</span>
+          <span className="palloncino piccolo" title={`Chapter ${t.chapter}`}>{t.chapter}</span>
           <span className="task-tipo">{t.tipo}</span>
           <span className="task-descrizione">
             <span>{t.descrizione}</span>
@@ -76,7 +79,8 @@ function LogbookDi({ f }: { f: Utente }) {
         {eAperto && (
           <div className="task-dettaglio">
             <div className="riferimenti">
-              {t.subject} · {t.riferimenti}
+              <b>Task {t.id}</b> · Modulo {t.modulo} · Chapter {t.chapter} · {t.tipo} · {t.subject}
+              <div>{t.riferimenti}</div>
             </div>
             {regs.map((r) => (
               <div key={r.id} className="registrazione">
@@ -159,10 +163,10 @@ function LogbookDi({ f }: { f: Utente }) {
                 Registra task
               </Button>
             )}
-            <Button variant="default" leftSection={<IconFileSpreadsheet size={17} />} onClick={() => void esportaFrequentatore(dati, f)}>
+            <Button variant="default" leftSection={<IconFileSpreadsheet size={17} />} onClick={() => void esportaFrequentatore(dati, corso, f)}>
               Excel
             </Button>
-            <Button variant="default" onClick={() => esportaCsv(dati, s.registrazioni, `logbook_${s.nome}`)}>
+            <Button variant="default" onClick={() => esportaCsv(dati, corso, s.registrazioni, `logbook_${s.nome}`)}>
               CSV
             </Button>
           </>
@@ -187,7 +191,7 @@ function LogbookDi({ f }: { f: Utente }) {
         </div>
         <div className="chips" role="group" aria-label="Modulo">
           {chip('mod', null, 'Tutti i moduli', !mod)}
-          {CATALOGO.moduli.map((m) => chip('mod', mod === String(m.numero) ? null : String(m.numero), `Mod. ${m.numero}`, mod === String(m.numero)))}
+          {programma.moduli.map((m) => chip('mod', mod === String(m.numero) ? null : String(m.numero), `Mod. ${m.numero}`, mod === String(m.numero)))}
           {ch && (
             <button type="button" className="chip" aria-pressed onClick={() => aggiornaQuery({ ch: null })}>
               Ch {ch} <IconX size={14} aria-label="rimuovi filtro" />
@@ -249,7 +253,7 @@ function LogbookDi({ f }: { f: Utente }) {
               Registra task
             </Button>
           </div>
-          <ModuloRegistrazione aperto={modulo != null} chiudi={() => setModulo(null)} frequentatore={f} taskId={modulo?.taskId} modifica={modulo?.modifica} />
+          <ModuloRegistrazione aperto={modulo != null} chiudi={() => setModulo(null)} frequentatore={f} corso={corso} taskId={modulo?.taskId} modifica={modulo?.modifica} />
         </>
       )}
     </>

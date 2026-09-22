@@ -1,5 +1,6 @@
-import { calcolaReport, requisitiMancanti, type Report } from './compliance';
-import type { Dati, ID, Istruttore, Registrazione, Utente } from './tipi';
+import { calcolaReport, reportVuoto, requisitiMancanti, type Report } from './compliance';
+import { programmaPratico } from './programmi';
+import type { Corso, Dati, ID, Istruttore, Lezione, Registrazione, RuoloCorso, Utente } from './tipi';
 
 /** Viste calcolate sui dati, condivise da interfaccia ed esportazioni. */
 
@@ -19,11 +20,22 @@ export function chiaveOrdine(dati: Dati, u: Utente) {
   return (a ? `${a.cognome} ${a.nome}` : u.nome || u.username).toLowerCase();
 }
 
-export const frequentatori = (dati: Dati, ancheDisattivati = false) =>
-  dati.utenti.filter((u) => u.ruolo === 'trainee' && (ancheDisattivati || u.attivo)).sort((a, b) => chiaveOrdine(dati, a).localeCompare(chiaveOrdine(dati, b)));
+/** Account iscritti al corso con il ruolo indicato. */
+export function iscritti(dati: Dati, corsoId: ID | null | undefined, ruolo: RuoloCorso, ancheDisattivati = false): Utente[] {
+  const ids = new Set(dati.iscrizioni.filter((i) => i.corso_id === corsoId && i.ruolo === ruolo).map((i) => i.user_id));
+  return dati.utenti.filter((u) => ids.has(u.id) && (ancheDisattivati || u.attivo)).sort((a, b) => chiaveOrdine(dati, a).localeCompare(chiaveOrdine(dati, b)));
+}
 
-export const registrazioniDi = (dati: Dati, userId: ID) =>
-  dati.registrazioni.filter((r) => r.user_id === userId).sort((a, b) => b.data.localeCompare(a.data) || b.modificato_il.localeCompare(a.modificato_il));
+export const frequentatori = (dati: Dati, corsoId: ID | null | undefined, ancheDisattivati = false) => iscritti(dati, corsoId, 'trainee', ancheDisattivati);
+
+/** Chi può erogare lezioni nel corso: istruttori e direttore. */
+export const docenti = (dati: Dati, corsoId: ID | null | undefined) => [...iscritti(dati, corsoId, 'instructor'), ...iscritti(dati, corsoId, 'direttore')];
+
+export const registrazioniDi = (dati: Dati, corsoId: ID | null | undefined, userId: ID) =>
+  dati.registrazioni.filter((r) => r.user_id === userId && r.corso_id === corsoId).sort((a, b) => b.data.localeCompare(a.data) || b.modificato_il.localeCompare(a.modificato_il));
+
+export const lezioniDi = (dati: Dati, corsoId: ID | null | undefined) =>
+  dati.lezioni.filter((l) => l.corso_id === corsoId).sort((a, b) => a.data.localeCompare(b.data) || a.ordine - b.ordine);
 
 export interface RigaIstruttore {
   istruttore: Istruttore;
@@ -57,17 +69,24 @@ export interface Situazione {
   ultima: Registrazione | undefined;
 }
 
-export function situazione(dati: Dati, utente: Utente): Situazione {
-  const registrazioni = registrazioniDi(dati, utente.id);
-  const report = calcolaReport(registrazioni);
+export function situazione(dati: Dati, corso: Corso | undefined, utente: Utente): Situazione {
+  const registrazioni = registrazioniDi(dati, corso?.id, utente.id);
+  const programma = programmaPratico(corso?.programma_pratico);
+  const report = programma ? calcolaReport(registrazioni, programma) : reportVuoto();
   const ultima = [...registrazioni].sort((a, b) => b.modificato_il.localeCompare(a.modificato_il))[0];
   return { utente, nome: nomeUtente(dati, utente.id), report, mancanti: requisitiMancanti(report), registrazioni, ultima };
 }
 
 export const formatoData = (iso: string | null | undefined) => (iso ? new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString('it-IT') : '—');
+export const formatoDataBreve = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
 export const formatoIstante = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
 export const esecuzione = (r: Pick<Registrazione, 'tipo_esecuzione' | 'matricola'>) => (r.tipo_esecuzione === 'AC' ? r.matricola : r.tipo_esecuzione);
 
-export const formatoMinuti = (m: number) => (m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}′` : `${m}′`);
+export const formatoMinuti = (m: number) => (m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}′`.replace(' 00′', '') : `${m}′`);
+
+/** Ore residue/svolte in formato compatto ("12 h", "1,5 h"). */
+export const ore = (minuti: number) => `${(minuti / 60).toLocaleString('it-IT', { maximumFractionDigits: 1 })} h`;
+
+export const lezioniGiorno = (lezioni: readonly Lezione[], data: string) => lezioni.filter((l) => l.data === data).sort((a, b) => a.ordine - b.ordine);

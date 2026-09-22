@@ -1,4 +1,4 @@
-// Edge Function "gestione-utenti" del Gestionale Practical Type Training (runtime Deno di Supabase).
+// Edge Function "gestione-utenti" del Gestionale Type Training (runtime Deno di Supabase).
 //
 // Operazioni riservate al Training Manager che richiedono la chiave di servizio:
 // - crea:     nuovo account (Supabase Auth + profilo) con password provvisoria;
@@ -13,7 +13,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 const RE_USERNAME = /^[a-z0-9][a-z0-9._-]{2,39}$/;
-const RUOLI = ['admin', 'instructor', 'trainee'];
+const RUOLI = ['admin', 'direttore', 'instructor', 'trainee'];
 
 const risposta = (stato: number, corpo: Record<string, unknown>) =>
   new Response(JSON.stringify(corpo), { status: stato, headers: { ...CORS, 'Content-Type': 'application/json; charset=utf-8' } });

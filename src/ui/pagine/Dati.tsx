@@ -1,19 +1,20 @@
 import { useState } from 'react';
 import { Button, SimpleGrid, Stack, TextInput } from '@mantine/core';
 import { oggiISO } from '../../dominio/motore';
-import type { Utente } from '../../dominio/tipi';
+import type { Corso, Utente } from '../../dominio/tipi';
 import { formatoData } from '../../dominio/viste';
 import { IntestazionePagina, Sezione } from '../componenti/disegno';
 import { ConFrequentatore } from '../componenti/Frequentatore';
 import { useStato } from '../stato';
 
 export function Dati() {
-  return <ConFrequentatore>{(f) => <DatiDi f={f} />}</ConFrequentatore>;
+  return <ConFrequentatore>{(f, corso) => <DatiDi f={f} corso={corso} />}</ConFrequentatore>;
 }
 
-function DatiDi({ f }: { f: Utente }) {
-  const { utente } = useStato();
-  if (!utente) return null;
+function DatiDi({ f, corso }: { f: Utente; corso: Corso }) {
+  const { utente, dati } = useStato();
+  if (!utente || !dati) return null;
+  const guida = utente.ruolo === 'admin' || dati.iscrizioni.some((i) => i.corso_id === corso.id && i.user_id === utente.id && i.ruolo === 'direttore');
   return (
     <>
       <IntestazionePagina titolo="Personnel data" sotto="Trainee data e Practical type training data (Allegato 1, cap. 2)." />
@@ -22,7 +23,7 @@ function DatiDi({ f }: { f: Utente }) {
           <FormAnagrafica key={f.id} f={f} sola={!(utente.ruolo === 'admin' || utente.id === f.id)} />
         </Sezione>
         <Sezione titolo="Practical type training data">
-          <FormTraining key={f.id} userIds={[f.id]} sola={utente.ruolo !== 'admin'} />
+          <FormTraining key={f.id} corso={corso} userIds={[f.id]} sola={!guida} />
         </Sezione>
       </div>
     </>
@@ -81,9 +82,9 @@ export function FormAnagrafica({ f, sola, dopo }: { f: Utente; sola: boolean; do
 }
 
 /** Practical type training data: inseriti dal solo TM, per un frequentatore o per più frequentatori insieme. */
-export function FormTraining({ userIds, sola, dopo }: { userIds: string[]; sola: boolean; dopo?: () => void }) {
+export function FormTraining({ corso, userIds, sola, dopo }: { corso: Corso; userIds: string[]; sola: boolean; dopo?: () => void }) {
   const { dati, esegui } = useStato();
-  const t = dati?.training.find((x) => x.user_id === userIds[0]);
+  const t = dati?.training.find((x) => x.user_id === userIds[0] && x.corso_id === corso.id) ?? (userIds.length ? corso : undefined);
   const [v, setV] = useState({
     data_inizio: t?.data_inizio ?? '',
     data_fine: t?.data_fine ?? '',
@@ -124,7 +125,7 @@ export function FormTraining({ userIds, sola, dopo }: { userIds: string[]; sola:
         e.preventDefault();
         setAttesa(true);
         const ok = await esegui(
-          { tipo: 'training.salva', user_ids: userIds, training: { ...v, data_inizio: v.data_inizio || null, data_fine: v.data_fine || null } },
+          { tipo: 'training.salva', corso_id: corso.id, user_ids: userIds, training: { ...v, data_inizio: v.data_inizio || null, data_fine: v.data_fine || null } },
           userIds.length > 1 ? `Training data salvati per ${userIds.length} frequentatori` : 'Training data salvati',
         );
         setAttesa(false);

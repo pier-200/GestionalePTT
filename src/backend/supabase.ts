@@ -2,12 +2,13 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Config } from '../config';
 import { ErroreApp } from '../dominio/errori';
 import { RE_USERNAME, applica, errorePassword, oggiISO, type Comando } from '../dominio/motore';
-import type { Dati, Registrazione, Utente } from '../dominio/tipi';
+import { datiVuoti, type Dati, type Registrazione, type Utente } from '../dominio/tipi';
 import { archivio, type Backend, type DatiPrimoAvvio, type Sessione } from './tipi';
 
 type ConfigSupabase = Extract<Config, { tipo: 'supabase' }>;
 
 const RICORDAMI = 'supabase:ricordami';
+const TABELLE = ['profili', 'corsi', 'iscrizioni', 'anagrafiche', 'training_data', 'istruttori', 'registrazioni', 'lezioni', 'abilitazioni'] as const;
 
 function traduci(e: { message?: string; code?: string } | null | undefined): ErroreApp {
   const m = e?.message ?? 'errore sconosciuto';
@@ -147,16 +148,20 @@ export class SupabaseBackend implements Backend {
   async caricaDati(completo = false): Promise<Dati> {
     // traffico contenuto (piano gratuito): tutto solo al primo caricamento o col pulsante Aggiorna,
     // poi solo le tabelle segnalate; le registrazioni arrivano già complete dagli eventi in tempo reale
-    const tabelle = !this.dati || completo ? ['profili', 'anagrafiche', 'training_data', 'istruttori', 'registrazioni'] : [...this.sporche];
+    const tabelle = !this.dati || completo ? [...TABELLE] : [...this.sporche];
     this.sporche.clear();
-    const nuovi: Dati = { ...(this.dati ?? { utenti: [], anagrafiche: [], training: [], istruttori: [], registrazioni: [] }) };
+    const nuovi: Dati = { ...(this.dati ?? datiVuoti()) };
     await Promise.all(
       tabelle.map(async (t) => {
         if (t === 'profili') nuovi.utenti = await this.tutte('profili', 'created_at');
+        if (t === 'corsi') nuovi.corsi = await this.tutte('corsi', 'codice');
+        if (t === 'iscrizioni') nuovi.iscrizioni = await this.tutte('iscrizioni', 'corso_id');
         if (t === 'anagrafiche') nuovi.anagrafiche = await this.tutte('anagrafiche', 'user_id');
         if (t === 'training_data') nuovi.training = await this.tutte('training_data', 'user_id');
         if (t === 'istruttori') nuovi.istruttori = await this.tutte('istruttori', 'cognome');
         if (t === 'registrazioni') nuovi.registrazioni = await this.tutte('registrazioni', 'data');
+        if (t === 'lezioni') nuovi.lezioni = await this.tutte('lezioni', 'data');
+        if (t === 'abilitazioni') nuovi.abilitazioni = await this.tutte('abilitazioni', 'user_id');
       }),
     );
     this.dati = nuovi;
@@ -182,12 +187,24 @@ export class SupabaseBackend implements Backend {
     // controllo preventivo con le stesse regole del database, per messaggi immediati e chiari
     applica(this.dati ?? (await this.caricaDati()), comando, { utenteId: this.utente.id, ora: new Date().toISOString(), oggi: oggiISO() });
     switch (comando.tipo) {
+      case 'corso.salva':
+        verifica(await this.sb.from('corsi').upsert(comando.corso));
+        this.sporche.add('corsi');
+        break;
+      case 'corso.iscrivi':
+        verifica(await this.sb.from('iscrizioni').insert(comando.iscrizione));
+        this.sporche.add('iscrizioni');
+        break;
+      case 'corso.disiscrivi':
+        verifica(await this.sb.from('iscrizioni').delete().eq('id', comando.id));
+        this.sporche.add('iscrizioni').add('lezioni');
+        break;
       case 'anagrafica.salva':
         verifica(await this.sb.from('anagrafiche').upsert(comando.anagrafica));
         this.sporche.add('anagrafiche');
         break;
       case 'training.salva':
-        verifica(await this.sb.from('training_data').upsert(comando.user_ids.map((user_id) => ({ user_id, ...comando.training }))));
+        verifica(await this.sb.from('training_data').upsert(comando.user_ids.map((user_id) => ({ corso_id: comando.corso_id, user_id, ...comando.training }))));
         this.sporche.add('training_data');
         break;
       case 'istruttore.crea':
@@ -206,6 +223,24 @@ export class SupabaseBackend implements Backend {
       case 'registrazione.elimina':
         verifica(await this.sb.from('registrazioni').delete().eq('id', comando.id));
         this.applicaRegistrazione(null, comando.id);
+        break;
+      case 'lezioni.sostituisci':
+        verifica(await this.sb.from('lezioni').delete().eq('corso_id', comando.corso_id).in('data', comando.giorni));
+        if (comando.lezioni.length) verifica(await this.sb.from('lezioni').insert(comando.lezioni));
+        this.sporche.add('lezioni');
+        break;
+      case 'lezione.modifica': {
+        const { id, ...campi } = comando.lezione;
+        verifica(await this.sb.from('lezioni').update(campi).eq('id', id));
+        this.sporche.add('lezioni');
+        break;
+      }
+      case 'abilitazioni.imposta':
+        verifica(await this.sb.from('abilitazioni').delete().eq('user_id', comando.user_id).eq('programma', comando.programma));
+        if (comando.materie.length) {
+          verifica(await this.sb.from('abilitazioni').insert(comando.materie.map((materia) => ({ user_id: comando.user_id, programma: comando.programma, materia }))));
+        }
+        this.sporche.add('abilitazioni');
         break;
       case 'utente.crea':
         await this.funzione({ azione: 'crea', ...comando.utente, password: comando.password });
@@ -237,7 +272,7 @@ export class SupabaseBackend implements Backend {
       attesa = window.setTimeout(avvisa, 400);
     };
     const canale = this.sb.channel('ptt-modifiche');
-    for (const table of ['registrazioni', 'anagrafiche', 'training_data', 'istruttori', 'profili']) {
+    for (const table of TABELLE) {
       canale.on('postgres_changes', { event: '*', schema: 'public', table }, (evento) => {
         // le registrazioni arrivano complete nell'evento: niente rilettura dell'intero logbook
         if (table === 'registrazioni') this.applicaRegistrazione(evento.eventType === 'DELETE' ? null : (evento.new as Registrazione), (evento.old as { id?: string }).id);

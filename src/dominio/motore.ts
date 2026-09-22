@@ -1,29 +1,40 @@
-import { TASK_PER_ID } from './catalogo';
 import { ErroreApp } from './errori';
-import type { Anagrafica, Dati, DatiTraining, ID, Istruttore, Registrazione, Ruolo, TipoEsecuzione, Utente } from './tipi';
+import { indice, programmaPratico, programmaTeorico } from './programmi';
+import type { Anagrafica, Corso, Dati, DatiTraining, ID, Iscrizione, Istruttore, Lezione, Registrazione, Ruolo, RuoloCorso, TipoEsecuzione, Utente } from './tipi';
 
 /**
  * Comandi di modifica dei dati, con permessi e validazioni. Il motore è eseguito
  * nel browser dagli archivi demo e GitHub; con Supabase le stesse regole sono
- * ripetute dal database (schema.sql) e il motore serve solo per i messaggi immediati.
+ * ripetute dal database (database/schema.sql) e il motore serve per i messaggi immediati.
  */
 
 export type CampiRegistrazione = Pick<
   Registrazione,
-  'id' | 'user_id' | 'task_id' | 'maintenance_location' | 'data' | 'tipo_esecuzione' | 'matricola' | 'et_minuti' | 'instructor_id'
+  'id' | 'corso_id' | 'user_id' | 'task_id' | 'maintenance_location' | 'data' | 'tipo_esecuzione' | 'matricola' | 'et_minuti' | 'instructor_id'
 >;
 export type CampiAnagrafica = Omit<Anagrafica, 'updated_at' | 'updated_by'>;
-export type CampiTraining = Omit<DatiTraining, 'user_id' | 'updated_at' | 'updated_by'>;
+export type CampiTraining = Omit<DatiTraining, 'corso_id' | 'user_id' | 'updated_at' | 'updated_by'>;
 export type CampiIstruttore = Pick<Istruttore, 'id' | 'grado' | 'nome' | 'cognome'>;
 export type CampiUtente = Pick<Utente, 'id' | 'username' | 'ruolo' | 'nome' | 'istruttore_id'>;
+export type CampiCorso = Pick<
+  Corso,
+  'id' | 'codice' | 'nome' | 'programma_teorico' | 'programma_pratico' | 'data_inizio' | 'data_fine' | 'maintenance_organization' | 'location' | 'ora_inizio' | 'minuti_giorno' | 'attivo'
+>;
+export type CampiLezione = Pick<Lezione, 'id' | 'corso_id' | 'data' | 'ordine' | 'minuti' | 'materia' | 'istruttore_id' | 'note'>;
 
 export type Comando =
+  | { tipo: 'corso.salva'; corso: CampiCorso }
+  | { tipo: 'corso.iscrivi'; iscrizione: Pick<Iscrizione, 'id' | 'corso_id' | 'user_id' | 'ruolo'> }
+  | { tipo: 'corso.disiscrivi'; id: ID }
   | { tipo: 'anagrafica.salva'; anagrafica: CampiAnagrafica }
-  | { tipo: 'training.salva'; user_ids: ID[]; training: CampiTraining }
+  | { tipo: 'training.salva'; corso_id: ID; user_ids: ID[]; training: CampiTraining }
   | { tipo: 'istruttore.crea'; istruttore: CampiIstruttore }
   | { tipo: 'istruttore.modifica'; istruttore: CampiIstruttore }
   | { tipo: 'registrazione.salva'; registrazione: CampiRegistrazione }
   | { tipo: 'registrazione.elimina'; id: ID }
+  | { tipo: 'lezioni.sostituisci'; corso_id: ID; giorni: string[]; lezioni: CampiLezione[] }
+  | { tipo: 'lezione.modifica'; lezione: Pick<CampiLezione, 'id' | 'istruttore_id' | 'note'> }
+  | { tipo: 'abilitazioni.imposta'; user_id: ID; programma: string; materie: string[] }
   | { tipo: 'utente.crea'; utente: CampiUtente; password: string }
   | { tipo: 'utente.modifica'; utente: Pick<Utente, 'id' | 'nome' | 'attivo' | 'istruttore_id'>; password?: string }
   | { tipo: 'utente.passwordCambiata' };
@@ -60,6 +71,19 @@ export function errorePassword(p: string): string | null {
 
 const dataValida = (s: string) => RE_DATA.test(s) && !Number.isNaN(Date.parse(`${s}T00:00:00Z`)) && new Date(`${s}T00:00:00Z`).toISOString().startsWith(s);
 
+/** Ruolo dell'utente nel corso indicato ('admin' se Training Manager). */
+export function ruoloNelCorso(dati: Dati, utente: Utente, corsoId: ID | null | undefined): Ruolo | null {
+  if (utente.ruolo === 'admin') return 'admin';
+  const i = dati.iscrizioni.find((x) => x.corso_id === corsoId && x.user_id === utente.id);
+  return i ? i.ruolo : null;
+}
+
+/** Corsi visibili all'utente. */
+export function corsiDi(dati: Dati, utente: Utente): Corso[] {
+  const miei = new Set(dati.iscrizioni.filter((i) => i.user_id === utente.id).map((i) => i.corso_id));
+  return dati.corsi.filter((c) => utente.ruolo === 'admin' || miei.has(c.id)).sort((a, b) => Number(b.attivo) - Number(a.attivo) || b.codice.localeCompare(a.codice));
+}
+
 class Controlli {
   readonly errori: Record<string, string> = {};
 
@@ -88,9 +112,11 @@ class Controlli {
 }
 
 /** Normalizza e valida i campi di una registrazione (usato anche dal form). */
-export function validaRegistrazione(r: CampiRegistrazione, oggi: string, istruttori: readonly Istruttore[]): CampiRegistrazione {
+export function validaRegistrazione(r: CampiRegistrazione, oggi: string, istruttori: readonly Istruttore[], programma: string | null | undefined): CampiRegistrazione {
   const c = new Controlli();
-  if (!TASK_PER_ID.has(r.task_id)) c.errori.task_id = 'Task non presente nel catalogo';
+  const p = programmaPratico(programma);
+  if (!p) c.errori.corso_id = 'Il corso non prevede la parte pratica';
+  else if (!indice(p).taskPerId.has(r.task_id)) c.errori.task_id = 'Task non presente nel programma del corso';
   const maintenance_location = c.testo('maintenance_location', 'Maintenance location', r.maintenance_location, 100);
   const data = c.data('data', 'Data', r.data, true, oggi) ?? '';
   if (!TIPI_ESECUZIONE.includes(r.tipo_esecuzione)) c.errori.tipo_esecuzione = 'Indicare aeromobile, SIM o CLA';
@@ -119,14 +145,82 @@ const chiaveIstruttore = (i: Pick<Istruttore, 'grado' | 'nome' | 'cognome'>) =>
 export function applica(dati: Dati, comando: Comando, ctx: Contesto): Esito {
   const io = dati.utenti.find((u) => u.id === ctx.utenteId);
   if (!io || !io.attivo) throw new ErroreApp('AUTENTICAZIONE', 'Utente non abilitato: accedere di nuovo.');
-  const ruolo: Ruolo = io.ruolo;
-  const admin = ruolo === 'admin';
+  const admin = io.ruolo === 'admin';
   const traccia = { updated_at: ctx.ora, updated_by: io.id };
+  const corso = (id: ID) => {
+    const c = dati.corsi.find((x) => x.id === id);
+    if (!c) throw new ErroreApp('NON_TROVATO', 'Corso non trovato.');
+    return c;
+  };
+  /** Chi guida il corso: Training Manager o direttore iscritto. */
+  const guida = (corsoId: ID) => admin || ruoloNelCorso(dati, io, corsoId) === 'direttore';
+  const iscrittoCome = (corsoId: ID, userId: ID, ruolo: RuoloCorso) => dati.iscrizioni.some((i) => i.corso_id === corsoId && i.user_id === userId && i.ruolo === ruolo);
 
   switch (comando.tipo) {
+    case 'corso.salva': {
+      const c = comando.corso;
+      const esistente = dati.corsi.find((x) => x.id === c.id);
+      permesso(esistente ? guida(c.id) : admin, esistente ? 'Solo il Training Manager o il direttore modificano il corso.' : 'Solo il Training Manager crea i corsi.');
+      const v = new Controlli();
+      const codice = v.testo('codice', 'Codice', c.codice, 30);
+      if (codice && dati.corsi.some((x) => x.id !== c.id && x.codice.toLowerCase() === codice.toLowerCase())) v.errori.codice = `Il codice "${codice}" è già usato da un altro corso`;
+      const nome = v.testo('nome', 'Nome', c.nome, 120);
+      const data_inizio = v.data('data_inizio', 'Data di inizio', c.data_inizio, false);
+      const data_fine = v.data('data_fine', 'Data di fine', c.data_fine, false);
+      if (data_inizio && data_fine && data_fine < data_inizio) v.errori.data_fine = 'La data di fine precede la data di inizio';
+      if (c.programma_teorico && !programmaTeorico(c.programma_teorico)) v.errori.programma_teorico = 'Programma teorico sconosciuto';
+      if (c.programma_pratico && !programmaPratico(c.programma_pratico)) v.errori.programma_pratico = 'Programma pratico sconosciuto';
+      if (!c.programma_teorico && !c.programma_pratico) v.errori.programma_teorico = 'Indicare almeno un programma (teorico o pratico)';
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(c.ora_inizio)) v.errori.ora_inizio = 'Ora di inizio non valida (es. 08:30)';
+      const minuti_giorno = (c.minuti_giorno ?? []).slice(0, 5).map((x) => Math.max(0, Math.min(600, Math.round(Number(x) / 60) * 60)));
+      if (minuti_giorno.length !== 5) v.errori.minuti_giorno = 'Indicare i minuti di lezione per i cinque giorni';
+      v.verifica();
+      const nuovo: Corso = {
+        ...(esistente ?? { id: c.id, created_at: ctx.ora }),
+        id: c.id,
+        codice,
+        nome,
+        programma_teorico: c.programma_teorico,
+        programma_pratico: c.programma_pratico,
+        data_inizio,
+        data_fine,
+        maintenance_organization: v.testo('maintenance_organization', 'Maintenance Organisation', c.maintenance_organization, 200, false),
+        location: v.testo('location', 'Location', c.location, 100, false),
+        ora_inizio: c.ora_inizio,
+        minuti_giorno,
+        attivo: c.attivo,
+        created_at: esistente?.created_at ?? ctx.ora,
+        updated_at: ctx.ora,
+      };
+      return { dati: { ...dati, corsi: sostituisci(dati.corsi, (x) => x.id === c.id, nuovo) }, effetti: [] };
+    }
+
+    case 'corso.iscrivi': {
+      const i = comando.iscrizione;
+      permesso(guida(i.corso_id), 'Solo il Training Manager o il direttore iscrivono al corso.');
+      corso(i.corso_id);
+      const utente = dati.utenti.find((u) => u.id === i.user_id);
+      if (!utente) throw new ErroreApp('NON_TROVATO', 'Account non trovato.');
+      if (utente.ruolo === 'admin') throw new ErroreApp('VINCOLO', 'Il Training Manager vede già tutti i corsi.');
+      if (utente.ruolo === 'trainee' && i.ruolo !== 'trainee') throw new ErroreApp('VINCOLO', 'Un frequentatore può essere iscritto solo come frequentatore.');
+      if (utente.ruolo === 'instructor' && i.ruolo === 'direttore') throw new ErroreApp('VINCOLO', 'Solo un account «Direttore del corso» può dirigere un corso.');
+      if (dati.iscrizioni.some((x) => x.corso_id === i.corso_id && x.user_id === i.user_id)) throw new ErroreApp('DUPLICATO', 'Account già iscritto a questo corso.');
+      return { dati: { ...dati, iscrizioni: [...dati.iscrizioni, { ...i, created_at: ctx.ora }] }, effetti: [] };
+    }
+
+    case 'corso.disiscrivi': {
+      const i = dati.iscrizioni.find((x) => x.id === comando.id);
+      if (!i) throw new ErroreApp('NON_TROVATO', 'Iscrizione non trovata.');
+      permesso(guida(i.corso_id), 'Solo il Training Manager o il direttore gestiscono le iscrizioni.');
+      if (dati.registrazioni.some((r) => r.corso_id === i.corso_id && r.user_id === i.user_id)) {
+        throw new ErroreApp('VINCOLO', 'Il frequentatore ha già registrazioni in questo corso: i dati resterebbero senza iscrizione.');
+      }
+      return { dati: { ...dati, iscrizioni: dati.iscrizioni.filter((x) => x.id !== comando.id), lezioni: dati.lezioni.map((l) => (l.corso_id === i.corso_id && l.istruttore_id === i.user_id ? { ...l, istruttore_id: null } : l)) }, effetti: [] };
+    }
+
     case 'anagrafica.salva': {
       const a = comando.anagrafica;
-      permesso(admin || (ruolo === 'trainee' && a.user_id === io.id));
+      permesso(admin || (io.ruolo === 'trainee' && a.user_id === io.id));
       if (!dati.utenti.some((u) => u.id === a.user_id && u.ruolo === 'trainee')) throw new ErroreApp('NON_TROVATO', 'Frequentatore non trovato.');
       const c = new Controlli();
       const nuova: Anagrafica = {
@@ -144,7 +238,8 @@ export function applica(dati: Dati, comando: Comando, ctx: Contesto): Esito {
     }
 
     case 'training.salva': {
-      permesso(admin, 'Solo il Training Manager inserisce i Practical Type Training Data.');
+      permesso(guida(comando.corso_id), 'Solo il Training Manager o il direttore inseriscono i Practical Type Training Data.');
+      corso(comando.corso_id);
       const t = comando.training;
       const c = new Controlli();
       const data_inizio = c.data('data_inizio', 'Data di inizio', t.data_inizio, false);
@@ -160,8 +255,8 @@ export function applica(dati: Dati, comando: Comando, ctx: Contesto): Esito {
       c.verifica();
       let training = dati.training;
       for (const user_id of comando.user_ids) {
-        if (!dati.utenti.some((u) => u.id === user_id && u.ruolo === 'trainee')) throw new ErroreApp('NON_TROVATO', 'Frequentatore non trovato.');
-        training = sostituisci(training, (x) => x.user_id === user_id, { user_id, ...campi, ...traccia });
+        if (!iscrittoCome(comando.corso_id, user_id, 'trainee')) throw new ErroreApp('NON_TROVATO', 'Frequentatore non iscritto a questo corso.');
+        training = sostituisci(training, (x) => x.user_id === user_id && x.corso_id === comando.corso_id, { corso_id: comando.corso_id, user_id, ...campi, ...traccia });
       }
       return { dati: { ...dati, training }, effetti: [] };
     }
@@ -171,10 +266,10 @@ export function applica(dati: Dati, comando: Comando, ctx: Contesto): Esito {
       const i = comando.istruttore;
       const esistente = dati.istruttori.find((x) => x.id === i.id);
       if (comando.tipo === 'istruttore.crea') {
-        permesso(admin || ruolo === 'trainee');
+        permesso(admin || io.ruolo === 'direttore' || io.ruolo === 'trainee');
         if (esistente) throw new ErroreApp('DUPLICATO', 'Istruttore già presente.');
       } else {
-        permesso(admin, 'Solo il Training Manager modifica l’elenco istruttori.');
+        permesso(admin || io.ruolo === 'direttore', 'Solo il Training Manager o un direttore modificano l’elenco istruttori.');
         if (!esistente) throw new ErroreApp('NON_TROVATO', 'Istruttore non trovato.');
       }
       const c = new Controlli();
@@ -191,10 +286,12 @@ export function applica(dati: Dati, comando: Comando, ctx: Contesto): Esito {
     }
 
     case 'registrazione.salva': {
-      const r = validaRegistrazione(comando.registrazione, ctx.oggi, dati.istruttori);
+      const c = corso(comando.registrazione.corso_id);
+      const r = validaRegistrazione(comando.registrazione, ctx.oggi, dati.istruttori, c.programma_pratico);
       const esistente = dati.registrazioni.find((x) => x.id === r.id);
-      permesso(admin || (ruolo === 'trainee' && r.user_id === io.id && (!esistente || esistente.user_id === io.id)));
-      if (!dati.utenti.some((u) => u.id === r.user_id && u.ruolo === 'trainee')) throw new ErroreApp('NON_TROVATO', 'Frequentatore non trovato.');
+      permesso(admin || (io.ruolo === 'trainee' && r.user_id === io.id && (!esistente || esistente.user_id === io.id)));
+      if (!iscrittoCome(r.corso_id, r.user_id, 'trainee')) throw new ErroreApp('NON_TROVATO', 'Frequentatore non iscritto a questo corso.');
+      if (esistente && esistente.corso_id !== r.corso_id) throw new ErroreApp('VINCOLO', 'La registrazione non si può spostare su un altro corso.');
       const nuova: Registrazione = {
         ...r,
         creato_il: esistente?.creato_il ?? ctx.ora,
@@ -208,8 +305,62 @@ export function applica(dati: Dati, comando: Comando, ctx: Contesto): Esito {
     case 'registrazione.elimina': {
       const esistente = dati.registrazioni.find((x) => x.id === comando.id);
       if (!esistente) throw new ErroreApp('NON_TROVATO', 'Registrazione già eliminata.');
-      permesso(admin || (ruolo === 'trainee' && esistente.user_id === io.id));
+      permesso(admin || (io.ruolo === 'trainee' && esistente.user_id === io.id));
       return { dati: { ...dati, registrazioni: dati.registrazioni.filter((x) => x.id !== comando.id) }, effetti: [] };
+    }
+
+    case 'lezioni.sostituisci': {
+      permesso(guida(comando.corso_id), 'Solo il Training Manager o il direttore preparano il programma settimanale.');
+      const c = corso(comando.corso_id);
+      const p = programmaTeorico(c.programma_teorico);
+      if (!p) throw new ErroreApp('VINCOLO', 'Il corso non prevede la parte teorica.');
+      const v = new Controlli();
+      const giorni = new Set(comando.giorni.filter((g) => dataValida(g)));
+      if (giorni.size !== comando.giorni.length) v.errori.giorni = 'Giorni non validi';
+      for (const l of comando.lezioni) {
+        if (!giorni.has(l.data)) v.errori.lezioni = 'Una lezione cade fuori dai giorni indicati';
+        if (!p.materie.some((m) => m.id === l.materia)) v.errori.materia = 'Materia non presente nel programma del corso';
+        if (!Number.isInteger(l.minuti) || l.minuti < 15 || l.minuti > 600) v.errori.minuti = 'Durata della lezione non valida';
+        if (l.istruttore_id && !iscrittoCome(comando.corso_id, l.istruttore_id, 'instructor') && !iscrittoCome(comando.corso_id, l.istruttore_id, 'direttore')) {
+          v.errori.istruttore = 'Istruttore non iscritto al corso';
+        }
+      }
+      v.verifica();
+      const restanti = dati.lezioni.filter((l) => l.corso_id !== comando.corso_id || !giorni.has(l.data));
+      const nuove: Lezione[] = comando.lezioni.map((l) => ({
+        ...l,
+        note: (l.note ?? '').slice(0, 300),
+        creato_il: dati.lezioni.find((x) => x.id === l.id)?.creato_il ?? ctx.ora,
+        modificato_il: ctx.ora,
+        modificato_da: io.id,
+      }));
+      return { dati: { ...dati, lezioni: [...restanti, ...nuove] }, effetti: [] };
+    }
+
+    case 'lezione.modifica': {
+      const esistente = dati.lezioni.find((x) => x.id === comando.lezione.id);
+      if (!esistente) throw new ErroreApp('NON_TROVATO', 'Lezione non trovata.');
+      permesso(guida(esistente.corso_id), 'Solo il Training Manager o il direttore modificano le lezioni.');
+      const istruttore_id = comando.lezione.istruttore_id;
+      if (istruttore_id && !iscrittoCome(esistente.corso_id, istruttore_id, 'instructor') && !iscrittoCome(esistente.corso_id, istruttore_id, 'direttore')) {
+        throw new ErroreApp('VALIDAZIONE', 'Istruttore non iscritto al corso.');
+      }
+      const nuova: Lezione = { ...esistente, istruttore_id, note: (comando.lezione.note ?? '').slice(0, 300), modificato_il: ctx.ora, modificato_da: io.id };
+      return { dati: { ...dati, lezioni: sostituisci(dati.lezioni, (x) => x.id === nuova.id, nuova) }, effetti: [] };
+    }
+
+    case 'abilitazioni.imposta': {
+      permesso(admin || io.ruolo === 'direttore', 'Solo il Training Manager o un direttore assegnano le materie agli istruttori.');
+      const p = programmaTeorico(comando.programma);
+      if (!p) throw new ErroreApp('NON_TROVATO', 'Programma teorico non trovato.');
+      const utente = dati.utenti.find((u) => u.id === comando.user_id);
+      if (!utente || (utente.ruolo !== 'instructor' && utente.ruolo !== 'direttore')) throw new ErroreApp('NON_TROVATO', 'Istruttore non trovato.');
+      const materie = [...new Set(comando.materie)].filter((m) => p.materie.some((x) => x.id === m));
+      const altre = dati.abilitazioni.filter((a) => a.user_id !== comando.user_id || a.programma !== comando.programma);
+      return {
+        dati: { ...dati, abilitazioni: [...altre, ...materie.map((materia) => ({ id: `${comando.user_id}|${comando.programma}|${materia}`, user_id: comando.user_id, programma: comando.programma, materia }))] },
+        effetti: [],
+      };
     }
 
     case 'utente.crea': {
@@ -222,7 +373,7 @@ export function applica(dati: Dati, comando: Comando, ctx: Contesto): Esito {
       const nome = c.testo('nome', 'Nome', u.nome, 100, u.ruolo !== 'trainee');
       const problema = errorePassword(comando.password);
       if (problema) c.errori.password = problema;
-      if (!['admin', 'instructor', 'trainee'].includes(u.ruolo)) c.errori.ruolo = 'Ruolo non valido';
+      if (!['admin', 'direttore', 'instructor', 'trainee'].includes(u.ruolo)) c.errori.ruolo = 'Ruolo non valido';
       if (u.istruttore_id && !dati.istruttori.some((i) => i.id === u.istruttore_id)) c.errori.istruttore_id = 'Istruttore non trovato';
       c.verifica();
       const nuovo: Utente = {

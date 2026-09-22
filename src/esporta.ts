@@ -1,7 +1,7 @@
-import { CATALOGO, TASK, TASK_PER_ID } from './dominio/catalogo';
+import { indice, programmaPratico, type ProgrammaPratico } from './dominio/programmi';
 import type { Report, RigaReport } from './dominio/compliance';
 import { oggiISO } from './dominio/motore';
-import type { Dati, Registrazione, Utente } from './dominio/tipi';
+import type { Corso, Dati, Registrazione, Utente } from './dominio/tipi';
 import { esecuzione, frequentatori, istruttoriDi, nomeIstruttore, nomeUtente, situazione } from './dominio/viste';
 
 /** Esportazioni (PROGETTO_Logbook_PTT.md §5): Excel del singolo frequentatore, Excel complessivo, CSV. */
@@ -81,11 +81,11 @@ function foglioCompliance(report: Report): Foglio {
 }
 
 /** Logbook nel formato dell'Excel originale: tutte le righe del catalogo, una riga per registrazione. */
-function foglioLogbook(dati: Dati, registrazioni: Registrazione[]): Foglio {
+function foglioLogbook(dati: Dati, programma: ProgrammaPratico, registrazioni: Registrazione[]): Foglio {
   const righe: Cella[][] = [
     intestazione('ID', 'MODULE', 'CH', 'SUBJECT', 'TASK TYPE', 'TASK DESCRIPTION', 'OPERATION PERFORMED', 'MAINTENANCE LOCATION', 'DATA', 'A/C', 'ET (min)', 'INSTRUCTOR', 'Ultima modifica', 'Modificato da'),
   ];
-  for (const t of TASK) {
+  for (const t of programma.task) {
     const regs = registrazioni.filter((r) => r.task_id === t.id).sort((a, b) => a.data.localeCompare(b.data));
     const base: Cella[] = [t.id, t.modulo, t.chapter, t.subject, t.tipo, t.descrizione, t.riferimenti];
     if (!regs.length) righe.push(base);
@@ -106,10 +106,12 @@ function foglioLogbook(dati: Dati, registrazioni: Registrazione[]): Foglio {
   return { nome: 'Logbook', righe, larghezze: [6, 8, 8, 24, 9, 48, 30, 22, 11, 18, 8, 26, 17, 22] };
 }
 
-export async function esportaFrequentatore(dati: Dati, utente: Utente) {
-  const s = situazione(dati, utente);
+export async function esportaFrequentatore(dati: Dati, corso: Corso, utente: Utente) {
+  const programma = programmaPratico(corso.programma_pratico);
+  if (!programma) throw new Error('Il corso non prevede la parte pratica.');
+  const s = situazione(dati, corso, utente);
   const a = dati.anagrafiche.find((x) => x.user_id === utente.id);
-  const t = dati.training.find((x) => x.user_id === utente.id);
+  const t = dati.training.find((x) => x.user_id === utente.id && x.corso_id === corso.id) ?? corso;
   const fogli: Foglio[] = [
     {
       nome: 'Personal Data',
@@ -127,7 +129,7 @@ export async function esportaFrequentatore(dati: Dati, utente: Utente) {
         ['Location', t?.location || null],
       ],
     },
-    foglioLogbook(dati, s.registrazioni),
+    foglioLogbook(dati, programma, s.registrazioni),
     {
       nome: 'Practical Instructors',
       larghezze: [16, 18, 18, 12, 14, 12, 12, 12],
@@ -138,17 +140,19 @@ export async function esportaFrequentatore(dati: Dati, utente: Utente) {
     },
     foglioCompliance(s.report),
   ];
-  await scriviXlsx(fogli, `PTR_${CATALOGO.aeromobile}_${pulisciNome(s.nome)}_${oggiISO()}`);
+  await scriviXlsx(fogli, `PTR_${programma.aeromobile}_${pulisciNome(s.nome)}_${oggiISO()}`);
 }
 
-export async function esportaCorso(dati: Dati) {
-  const elenco = frequentatori(dati, true).map((u) => situazione(dati, u));
-  const tipi = CATALOGO.taskType.filter((t) => TASK.some((x) => x.tipo === t.codice)).map((t) => t.codice);
+export async function esportaCorso(dati: Dati, corso: Corso) {
+  const programma = programmaPratico(corso.programma_pratico);
+  if (!programma) throw new Error('Il corso non prevede la parte pratica.');
+  const elenco = frequentatori(dati, corso.id, true).map((u) => situazione(dati, corso, u));
+  const tipi = indice(programma).tipiApplicabili.map((t) => t.codice);
   const riepilogo: Foglio = {
     nome: 'Riepilogo',
-    larghezze: [18, 16, 18, 16, 8, 10, 10, ...CATALOGO.moduli.map(() => 9), ...tipi.map(() => 9), 10, 30, 15],
+    larghezze: [18, 16, 18, 16, 8, 10, 10, ...programma.moduli.map(() => 9), ...tipi.map(() => 9), 10, 30, 15],
     righe: [
-      intestazione('Grado', 'Nome', 'Cognome', 'Username', 'Attivo', 'Task eseguiti', '% totale', ...CATALOGO.moduli.map((m) => `% Mod. ${m.numero}`), ...tipi.map((t) => `% ${t}`), 'Chapter scoperti', 'Elenco chapter scoperti', 'Esito'),
+      intestazione('Grado', 'Nome', 'Cognome', 'Username', 'Attivo', 'Task eseguiti', '% totale', ...programma.moduli.map((m) => `% Mod. ${m.numero}`), ...tipi.map((t) => `% ${t}`), 'Chapter scoperti', 'Elenco chapter scoperti', 'Esito'),
       ...elenco.map((s) => {
         const a = dati.anagrafiche.find((x) => x.user_id === s.utente.id);
         return [
@@ -171,28 +175,30 @@ export async function esportaCorso(dati: Dati) {
   const grezzi: Foglio = {
     nome: 'Registrazioni',
     larghezze: [26, 7, 7, 8, 8, 48, 22, 11, 9, 18, 8, 26, 17, 22],
-    righe: [intestazione(...COLONNE_CSV), ...righeCsv(dati, dati.registrazioni).map((r) => r.map((v, i) => (i === 7 ? data(String(v)) : v)))],
+    righe: [intestazione(...COLONNE_CSV), ...righeCsv(dati, programma, dati.registrazioni.filter((r) => r.corso_id === corso.id)).map((r) => r.map((v, i) => (i === 7 ? data(String(v)) : v)))],
   };
-  await scriviXlsx([riepilogo, grezzi], `PTT_riepilogo_corso_${oggiISO()}`);
+  await scriviXlsx([riepilogo, grezzi], `Riepilogo_${pulisciNome(corso.codice)}_${oggiISO()}`);
 }
 
 const COLONNE_CSV = ['Frequentatore', 'Task ID', 'Modulo', 'Chapter', 'Task type', 'Descrizione', 'Maintenance location', 'Data', 'Esecuzione', 'Matricola', 'ET (min)', 'Instructor', 'Modificato il', 'Modificato da'];
 
-function righeCsv(dati: Dati, registrazioni: readonly Registrazione[]): Valore[][] {
+function righeCsv(dati: Dati, programma: ProgrammaPratico, registrazioni: readonly Registrazione[]): Valore[][] {
   return [...registrazioni]
     .sort((a, b) => nomeUtente(dati, a.user_id).localeCompare(nomeUtente(dati, b.user_id)) || a.data.localeCompare(b.data))
     .map((r) => {
-      const t = TASK_PER_ID.get(r.task_id)!;
+      const t = indice(programma).taskPerId.get(r.task_id)!;
       return [nomeUtente(dati, r.user_id), t.id, t.modulo, t.chapter, t.tipo, t.descrizione, r.maintenance_location, r.data, r.tipo_esecuzione, r.matricola, r.et_minuti, nomeIstruttore(dati.istruttori.find((i) => i.id === r.instructor_id)), r.modificato_il, nomeUtente(dati, r.modificato_da)];
     });
 }
 
 /** CSV con separatore ";" e BOM, come lo apre Excel in italiano. */
-export function esportaCsv(dati: Dati, registrazioni: readonly Registrazione[], nome: string) {
+export function esportaCsv(dati: Dati, corso: Corso, registrazioni: readonly Registrazione[], nome: string) {
+  const programma = programmaPratico(corso.programma_pratico);
+  if (!programma) throw new Error('Il corso non prevede la parte pratica.');
   const campo = (v: Valore) => {
     const s = v == null ? '' : String(v);
     return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const testo = [COLONNE_CSV, ...righeCsv(dati, registrazioni)].map((r) => r.map(campo).join(';')).join('\r\n');
+  const testo = [COLONNE_CSV, ...righeCsv(dati, programma, registrazioni)].map((r) => r.map(campo).join(';')).join('\r\n');
   scarica(new Blob(['﻿', testo], { type: 'text/csv;charset=utf-8' }), `${pulisciNome(nome)}_${oggiISO()}.csv`);
 }

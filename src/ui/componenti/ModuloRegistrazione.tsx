@@ -3,17 +3,19 @@ import { Autocomplete, Button, Drawer, Group, NumberInput, SegmentedControl, Sel
 import { useMediaQuery } from '@mantine/hooks';
 import { IconPlus } from '@tabler/icons-react';
 import { nuovoUuid } from '../../backend/github/crittografia';
-import { TASK, TASK_PER_ID } from '../../dominio/catalogo';
+import { indice, programmaPratico } from '../../dominio/programmi';
 import { ErroreApp } from '../../dominio/errori';
 import { oggiISO, validaRegistrazione, type CampiRegistrazione } from '../../dominio/motore';
-import type { Registrazione, TipoEsecuzione, Utente } from '../../dominio/tipi';
+import type { Corso, Registrazione, TipoEsecuzione, Utente } from '../../dominio/tipi';
 import { nomeIstruttore } from '../../dominio/viste';
 import { useStato } from '../stato';
+import { useCampoVisibile } from './tastiera';
 
 interface Props {
   aperto: boolean;
   chiudi: () => void;
   frequentatore: Utente;
+  corso: Corso;
   /** Task preselezionato (dalla riga del logbook). */
   taskId?: number | null;
   /** Registrazione da modificare. */
@@ -23,12 +25,14 @@ interface Props {
 const MINUTI_RAPIDI = [15, 30, 45, 60, 90, 120];
 
 /** Form della registrazione, pensato per il pollice: campi in colonna, valori recenti già proposti. */
-export function ModuloRegistrazione({ aperto, chiudi, frequentatore, taskId, modifica }: Props) {
+export function ModuloRegistrazione({ aperto, chiudi, frequentatore, corso, taskId, modifica }: Props) {
   const { dati, esegui, segnaAppena } = useStato();
   const mobile = useMediaQuery('(max-width: 991px)');
+  useCampoVisibile(aperto && Boolean(mobile));
+  const programma = programmaPratico(corso.programma_pratico);
   const proprie = useMemo(
-    () => (dati?.registrazioni ?? []).filter((r) => r.user_id === frequentatore.id).sort((a, b) => b.modificato_il.localeCompare(a.modificato_il)),
-    [dati, frequentatore.id],
+    () => (dati?.registrazioni ?? []).filter((r) => r.user_id === frequentatore.id && r.corso_id === corso.id).sort((a, b) => b.modificato_il.localeCompare(a.modificato_il)),
+    [dati, frequentatore.id, corso.id],
   );
   const [campi, setCampi] = useState<CampiRegistrazione | null>(null);
   const [errori, setErrori] = useState<Record<string, string>>({});
@@ -45,6 +49,7 @@ export function ModuloRegistrazione({ aperto, chiudi, frequentatore, taskId, mod
         ? { ...modifica }
         : {
             id: nuovoUuid(),
+            corso_id: corso.id,
             user_id: frequentatore.id,
             task_id: taskId ?? 0,
             // si ripropongono luogo, aeromobile e istruttore dell'ultima registrazione
@@ -58,11 +63,11 @@ export function ModuloRegistrazione({ aperto, chiudi, frequentatore, taskId, mod
     );
   }, [aperto]);
 
-  if (!dati) return null;
+  if (!dati || !programma) return null;
   const luoghi = [...new Set(proprie.map((r) => r.maintenance_location))];
   const matricole = [...new Set(dati.registrazioni.filter((r) => r.tipo_esecuzione === 'AC').map((r) => r.matricola))];
   const istruttori = [...dati.istruttori].sort((a, b) => a.cognome.localeCompare(b.cognome));
-  const task = campi ? TASK_PER_ID.get(campi.task_id) : undefined;
+  const task = campi ? indice(programma).taskPerId.get(campi.task_id) : undefined;
   const aggiorna = (x: Partial<CampiRegistrazione>) => setCampi((c) => (c ? { ...c, ...x } : c));
 
   async function salva() {
@@ -71,7 +76,7 @@ export function ModuloRegistrazione({ aperto, chiudi, frequentatore, taskId, mod
     const pronta = { ...campi, instructor_id: idNuovo ?? campi.instructor_id };
     const elenco = idNuovo && nuovoIstr ? [...dati.istruttori, { id: idNuovo, ...nuovoIstr, created_at: '', created_by: null }] : dati.istruttori;
     try {
-      validaRegistrazione(pronta, oggiISO(), elenco);
+      validaRegistrazione(pronta, oggiISO(), elenco, corso.programma_pratico);
     } catch (e) {
       if (e instanceof ErroreApp && e.dettagli) return setErrori(e.dettagli);
       throw e;
@@ -99,7 +104,7 @@ export function ModuloRegistrazione({ aperto, chiudi, frequentatore, taskId, mod
       position={mobile ? 'bottom' : 'right'}
       size={mobile ? '94%' : 480}
       title={<span className="titolo-sezione">{modifica ? 'Modifica registrazione' : 'Registra task'}</span>}
-      styles={{ body: { paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' } }}
+      styles={{ body: { paddingBottom: mobile ? '45vh' : 'calc(24px + env(safe-area-inset-bottom))' } }}
     >
       {campi && (
         <form
@@ -116,10 +121,10 @@ export function ModuloRegistrazione({ aperto, chiudi, frequentatore, taskId, mod
                 searchable
                 value={campi.task_id ? String(campi.task_id) : null}
                 onChange={(v) => aggiorna({ task_id: Number(v) || 0 })}
-                data={TASK.map((t) => ({ value: String(t.id), label: `${t.id} · Ch ${t.chapter} · ${t.tipo} · ${t.descrizione}` }))}
+                data={programma.task.map((t) => ({ value: String(t.id), label: `${t.id} · Ch ${t.chapter} · ${t.tipo} · ${t.descrizione}` }))}
                 error={errori.task_id}
-                maxDropdownHeight={320}
-                comboboxProps={{ withinPortal: true }}
+                maxDropdownHeight={260}
+                comboboxProps={{ withinPortal: true, middlewares: { flip: true, shift: true } }}
                 disabled={Boolean(modifica)}
                 limit={60}
               />
@@ -233,6 +238,7 @@ export function ModuloRegistrazione({ aperto, chiudi, frequentatore, taskId, mod
                   value={campi.instructor_id || null}
                   onChange={(v) => aggiorna({ instructor_id: v ?? '' })}
                   data={istruttori.map((i) => ({ value: i.id, label: nomeIstruttore(i) }))}
+                  comboboxProps={{ withinPortal: true, middlewares: { flip: true, shift: true } }}
                   error={errori.instructor_id}
                   nothingFoundMessage="Non in elenco: aggiungilo qui sotto"
                   required

@@ -1,18 +1,18 @@
-import type { Utente } from '../../dominio/tipi';
+import type { Corso, Utente } from '../../dominio/tipi';
 import { formatoData, formatoMinuti, istruttoriDi, registrazioniDi } from '../../dominio/viste';
 import { IntestazionePagina } from '../componenti/disegno';
 import { ConFrequentatore } from '../componenti/Frequentatore';
 import { useStato } from '../stato';
 
 export function Istruttori() {
-  return <ConFrequentatore>{(f) => <IstruttoriDi f={f} />}</ConFrequentatore>;
+  return <ConFrequentatore>{(f, corso) => <IstruttoriDi f={f} corso={corso} />}</ConFrequentatore>;
 }
 
 /** Practical Instructors: si compila da sé con gli istruttori indicati nelle registrazioni. */
-function IstruttoriDi({ f }: { f: Utente }) {
+function IstruttoriDi({ f, corso }: { f: Utente; corso: Corso }) {
   const { dati, utente } = useStato();
   if (!dati || !utente) return null;
-  const righe = istruttoriDi(dati, registrazioniDi(dati, f.id));
+  const righe = istruttoriDi(dati, registrazioniDi(dati, corso.id, f.id));
   const mio = utente.ruolo === 'instructor' ? utente.istruttore_id : null;
   return (
     <>

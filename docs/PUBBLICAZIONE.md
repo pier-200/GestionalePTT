@@ -1,13 +1,31 @@
 # Pubblicazione e archivio condiviso
 
-L'app è online su **https://pier-200.github.io/GestionalePTT/** con archivio **Supabase** già configurato
-(progetto `dyragieggyvgayteotlm`, regione eu-west-1): tutti lavorano sugli stessi dati. La modalità dimostrativa resta
-disponibile su `https://pier-200.github.io/GestionalePTT/?demo`. In alternativa a Supabase si può usare un
-**repository GitHub privato** (sezione B). L'archivio si sceglie in `public/config.json` e si ripubblica.
+L'app è online su **https://pier-200.github.io/GestionaleTypeTraining/** con archivio **Supabase** già configurato
+(progetto `dyragieggyvgayteotlm`, regione eu-west-1): tutti lavorano sugli stessi dati.
+
+Collegamenti da distribuire:
+
+| Link | A chi |
+|---|---|
+| `https://pier-200.github.io/GestionaleTypeTraining/?app=mtt` | parte teorica (MTT) |
+| `https://pier-200.github.io/GestionaleTypeTraining/?app=ptt` | parte pratica (PTT) |
+| `https://pier-200.github.io/GestionaleTypeTraining/` | Training Manager e direttori (tutto) |
+| `https://pier-200.github.io/GestionaleTypeTraining/?demo` | prova con dati finti |
+
+In alternativa a Supabase si può usare un **repository GitHub privato** (sezione B). L'archivio si sceglie in
+`public/config.json` e si ripubblica.
+
+## Aggiornamento al modello a corsi (23/09/2026)
+
+Chi aveva già il database installato prima dei corsi deve, **una volta sola** e in quest'ordine, nel SQL Editor:
+
+1. `database/migrazione-corsi.sql` – crea il corso «T1-2026/1», vi collega registrazioni, training data e iscrizioni,
+   aggiunge il ruolo «direttore» e toglie dal database il catalogo dei task (ora sta nell'applicazione).
+2. `database/schema.sql` – nuove tabelle (corsi, iscrizioni, lezioni, abilitazioni), permessi per corso e tempo reale.
 
 ## Stato dell'installazione Supabase (22/09/2026)
 
-- Catalogo, schema, sicurezza (RLS) e tempo reale installati (`database/catalogo.sql`, `database/schema.sql`).
+- Schema, sicurezza per corso (RLS) e tempo reale installati (`database/schema.sql`).
 - Edge Function `gestione-utenti` pubblicata con Verify JWT disattivato; registrazione libera disattivata.
 - Account **training.manager** (Training Manager) con password provvisoria, da cambiare al primo accesso.
 - Situazione esempio caricata con account propri. Credenziali nel file locale
@@ -34,8 +52,8 @@ Permessi applicati dal database, aggiornamento in tempo reale, piano gratuito.
 
 ### 2. Installare catalogo, schema e funzione
 
-1. **SQL Editor → New query**: incollare tutto `database/catalogo.sql` e premere **Run**.
-2. Nuova query: incollare tutto `database/schema.sql` e premere **Run** (entrambi gli script si possono rieseguire).
+1. **SQL Editor → New query**: incollare tutto `database/schema.sql` e premere **Run** (lo script si può rieseguire).
+   Il catalogo dei task e il programma teorico non stanno nel database: sono file dell'applicazione (`src/dati/programmi`).
 3. **Edge Functions → Deploy a new function → Via editor**: nome **`gestione-utenti`**, incollare
    `supabase/functions/gestione-utenti/index.ts`, **Deploy**. Nella scheda della funzione disattivare **Verify JWT**
    (la funzione verifica da sé che chi la chiama sia il Training Manager).

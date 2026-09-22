@@ -24,7 +24,7 @@ console.log('Compilazione…');
 const { build } = await import('vite');
 await build();
 
-const cartella = mkdtempSync(join(tmpdir(), 'ptt-pages-'));
+const cartella = mkdtempSync(join(tmpdir(), 'tt-pages-'));
 // ramo locale usa e getta, con nome univoco per non inciampare in esecuzioni interrotte
 const ramoTemporaneo = `pubblicazione-${Date.now()}`;
 try {
@@ -38,7 +38,7 @@ try {
   nel('add', '-A');
   nel('commit', '-q', '-m', `deploy: ${gitMuto('rev-parse', '--short', 'HEAD')}`);
   nel('push', '-q', '--force', 'origin', `HEAD:${RAMO}`);
-  console.log('Pubblicato: https://pier-200.github.io/GestionalePTT/');
+  console.log('Pubblicato: https://pier-200.github.io/GestionaleTypeTraining/');
 } finally {
   git('worktree', 'remove', cartella, '--force');
   rmSync(cartella, { recursive: true, force: true });

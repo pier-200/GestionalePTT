@@ -1,14 +1,13 @@
 import { useState } from 'react';
-import { Button, Checkbox, CopyButton, Drawer, Group, SegmentedControl, Select, Stack, Switch, Tabs, Text, TextInput } from '@mantine/core';
+import { Button, CopyButton, Drawer, Group, SegmentedControl, Select, Stack, Switch, Tabs, Text, TextInput } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { IconCopy, IconPencil, IconPlus, IconRefresh } from '@tabler/icons-react';
 import { nuovoUuid } from '../../backend/github/crittografia';
 import { RE_USERNAME, errorePassword } from '../../dominio/motore';
 import { ETICHETTA_RUOLO, type Istruttore, type Ruolo, type Utente } from '../../dominio/tipi';
-import { chiaveOrdine, formatoData, frequentatori, nomeIstruttore, nomeUtente } from '../../dominio/viste';
+import { chiaveOrdine, formatoData, nomeIstruttore, nomeUtente } from '../../dominio/viste';
 import { IntestazionePagina } from '../componenti/disegno';
 import { useStato } from '../stato';
-import { FormTraining } from './Dati';
 
 /** Password provvisoria leggibile: niente caratteri ambigui (0/O, 1/l). */
 function generaPassword() {
@@ -94,6 +93,7 @@ function FormAccount({ esistente, chiudi }: { esistente: Utente | null; chiudi: 
               data={[
                 { value: 'trainee', label: 'Frequentatore' },
                 { value: 'instructor', label: 'Istruttore' },
+                { value: 'direttore', label: 'Direttore' },
                 { value: 'admin', label: 'Training Mgr' },
               ]}
             />
@@ -181,21 +181,18 @@ export function Account() {
   const mobile = useMediaQuery('(max-width: 991px)');
   const [account, setAccount] = useState<Utente | 'nuovo' | null>(null);
   const [istruttore, setIstruttore] = useState<Istruttore | 'nuovo' | null>(null);
-  const [scelti, setScelti] = useState<string[]>([]);
   if (!dati || !backend) return null;
-  const ordine: Record<Ruolo, number> = { admin: 0, instructor: 1, trainee: 2 };
+  const ordine: Record<Ruolo, number> = { admin: 0, direttore: 1, instructor: 2, trainee: 3 };
   const utenti = [...dati.utenti].sort((a, b) => ordine[a.ruolo] - ordine[b.ruolo] || Number(b.attivo) - Number(a.attivo) || chiaveOrdine(dati, a).localeCompare(chiaveOrdine(dati, b)));
-  const freq = frequentatori(dati);
   const cassetto = { position: mobile ? ('bottom' as const) : ('right' as const), size: mobile ? '92%' : 460 };
 
   return (
     <>
-      <IntestazionePagina titolo="Account e corso" sotto={`Archivio: ${backend.nome}${backend.permessiLatoServer ? '' : ' · permessi applicati dall’app'}`} />
+      <IntestazionePagina titolo="Account" sotto={`Archivio: ${backend.nome}${backend.permessiLatoServer ? '' : ' · permessi applicati dall’app'}`} />
       <Tabs defaultValue="account" keepMounted={false}>
         <Tabs.List mb="lg">
           <Tabs.Tab value="account">Account · {utenti.length}</Tabs.Tab>
           <Tabs.Tab value="istruttori">Elenco istruttori · {dati.istruttori.length}</Tabs.Tab>
-          <Tabs.Tab value="training">Training data del corso</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="account">
@@ -275,36 +272,6 @@ export function Account() {
           </div>
         </Tabs.Panel>
 
-        <Tabs.Panel value="training">
-          <div className="griglia-2">
-            <div>
-              <Text className="etichetta" mb={6}>
-                Frequentatori
-              </Text>
-              <Checkbox
-                label="Tutto il corso"
-                checked={scelti.length === freq.length && freq.length > 0}
-                indeterminate={scelti.length > 0 && scelti.length < freq.length}
-                onChange={(e) => setScelti(e.currentTarget.checked ? freq.map((u) => u.id) : [])}
-                mb="sm"
-              />
-              <Stack gap={8}>
-                {freq.map((u) => (
-                  <Checkbox key={u.id} label={nomeUtente(dati, u.id)} checked={scelti.includes(u.id)} onChange={(e) => setScelti(e.currentTarget.checked ? [...scelti, u.id] : scelti.filter((x) => x !== u.id))} />
-                ))}
-              </Stack>
-            </div>
-            <div>
-              <Text className="etichetta" mb={6}>
-                Practical type training data
-              </Text>
-              <FormTraining key={scelti.join()} userIds={scelti} sola={false} dopo={() => setScelti([])} />
-              <Text size="xs" c="dimmed" mt="sm">
-                I campi proposti sono quelli del primo frequentatore selezionato. La Commissione tecnica esaminatrice non è gestita nell’applicazione.
-              </Text>
-            </div>
-          </div>
-        </Tabs.Panel>
       </Tabs>
 
       <Drawer opened={account != null} onClose={() => setAccount(null)} {...cassetto} title={<span className="titolo-sezione">{account === 'nuovo' ? 'Nuovo account' : 'Modifica account'}</span>}>

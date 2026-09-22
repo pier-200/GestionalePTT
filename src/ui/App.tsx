@@ -1,29 +1,50 @@
 import { useEffect } from 'react';
 import { Button, Loader, Text } from '@mantine/core';
+import { corsiDi } from '../dominio/motore';
 import { Guscio } from './Guscio';
 import { Foglio } from './componenti/disegno';
 import { Accesso, PrimoAvvio } from './pagine/Accesso';
 import { Account } from './pagine/Account';
+import { Corsi } from './pagine/Corsi';
 import { Corso } from './pagine/Corso';
 import { Dati, FormAnagrafica } from './pagine/Dati';
+import { Distinta } from './pagine/Distinta';
 import { Generalita } from './pagine/Generalita';
 import { Istruttori } from './pagine/Istruttori';
 import { Logbook } from './pagine/Logbook';
+import { Materie } from './pagine/Materie';
 import { FormPassword, Profilo } from './pagine/Profilo';
 import { Report } from './pagine/Report';
+import { Settimana } from './pagine/Settimana';
 import { Tavola } from './pagine/Tavola';
+import { Teoria } from './pagine/Teoria';
+import { applicativo, menuPer, useCorso, useRuoloCorso } from './navigazione';
 import { usePosizione } from './router';
 import { useStato } from './stato';
 
-const PAGINE: Record<string, { titolo: string; pagina: () => React.ReactNode; soloAdmin?: boolean; soloStaff?: boolean }> = {
-  '/tavola': { titolo: 'Tavola', pagina: Tavola },
-  '/logbook': { titolo: 'Logbook', pagina: Logbook },
-  '/report': { titolo: 'Compliance Report', pagina: Report },
-  '/istruttori': { titolo: 'Practical Instructors', pagina: Istruttori },
-  '/dati': { titolo: 'Personal & Training Data', pagina: Dati },
+interface Pagina {
+  titolo: string;
+  pagina: () => React.ReactNode;
+  soloAdmin?: boolean;
+  /** Richiede un corso scelto. */
+  corso?: boolean;
+}
+
+const PAGINE: Record<string, Pagina> = {
+  '/corsi': { titolo: 'Corsi', pagina: Corsi },
+  '/corso': { titolo: 'Corso e iscritti', pagina: Corso, corso: true },
+  '/settimana': { titolo: 'Programma settimanale', pagina: Settimana, corso: true },
+  '/teoria': { titolo: 'Situazione della teoria', pagina: Teoria, corso: true },
+  '/materie': { titolo: 'Materie e istruttori', pagina: Materie, corso: true },
+  '/distinta': { titolo: 'Situazione pratica', pagina: Distinta, corso: true },
+  '/tavola': { titolo: 'Tavola', pagina: Tavola, corso: true },
+  '/logbook': { titolo: 'Logbook', pagina: Logbook, corso: true },
+  '/report': { titolo: 'Compliance Report', pagina: Report, corso: true },
+  '/istruttori': { titolo: 'Practical Instructors', pagina: Istruttori, corso: true },
+  '/dati': { titolo: 'Personal & Training Data', pagina: Dati, corso: true },
   '/generalita': { titolo: 'Generality and Purpose', pagina: Generalita },
   '/profilo': { titolo: 'Profilo', pagina: Profilo },
-  '/account': { titolo: 'Account e corso', pagina: Account, soloAdmin: true },
+  '/account': { titolo: 'Account', pagina: Account, soloAdmin: true },
 };
 
 function Schermata({ children }: { children: React.ReactNode }) {
@@ -39,6 +60,8 @@ function Schermata({ children }: { children: React.ReactNode }) {
 export function App() {
   const { fase, messaggio, utente, dati, avvia } = useStato();
   const { percorso } = usePosizione();
+  const corso = useCorso();
+  const ruolo = useRuoloCorso();
 
   useEffect(() => {
     void avvia();
@@ -53,7 +76,7 @@ export function App() {
       <Schermata>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <Loader size="sm" color="inchiostro" />
-          <span>Caricamento del logbook…</span>
+          <span>Caricamento…</span>
         </div>
       </Schermata>
     );
@@ -96,11 +119,15 @@ export function App() {
     );
   }
 
-  const staff = utente.ruolo !== 'trainee';
-  const voce = percorso === '/' ? null : PAGINE[percorso];
+  const app = applicativo();
+  const menu = menuPer(utente, corso, ruolo, app);
+  const prima = menu.ordinate[0];
+  const scelta = corsiDi(dati, utente).length !== 1 && !corso;
+  const voce = percorso === '/' ? (scelta ? PAGINE['/corsi'] : PAGINE[prima?.a ?? '/corsi']) : PAGINE[percorso];
   const consentita = voce && !(voce.soloAdmin && utente.ruolo !== 'admin');
-  const titolo = percorso === '/' ? (staff ? 'Situazione del corso' : 'Tavola') : consentita ? voce.titolo : 'Pagina non trovata';
-  const Pagina = percorso === '/' ? (staff ? Corso : Tavola) : consentita ? voce.pagina : null;
+  const senzaCorso = consentita && voce.corso && !corso;
+  const titolo = !consentita ? 'Pagina non trovata' : senzaCorso ? 'Scegli il corso' : voce.titolo;
+  const Pagina = !consentita ? null : senzaCorso ? Corsi : voce.pagina;
 
   return (
     <Guscio titolo={titolo}>

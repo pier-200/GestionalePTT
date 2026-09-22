@@ -9,7 +9,7 @@ const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
 const page = await ctx.newPage();
 const errori = [];
 page.on('pageerror', (e) => errori.push(e.message));
-const pausa = (ms = 250) => page.waitForTimeout(ms);
+const pausa = (ms = 300) => page.waitForTimeout(ms);
 const profilo = async (nome) => {
   await page.getByRole('button', { name: new RegExp(nome) }).first().click();
   await page.waitForSelector('.guscio, form');
@@ -24,15 +24,21 @@ const esci = async () => {
   await page.reload();
   await page.waitForSelector('.profili');
 };
+const apriCorso = async (codice) => {
+  await page.goto(`${BASE}#/corsi`);
+  await page.locator('.scheda-corso', { hasText: codice }).getByRole('button', { name: 'Apri' }).click();
+  await page.waitForSelector('.guscio');
+  await pausa();
+};
 
 await page.goto(BASE);
 await page.waitForSelector('.profili');
 await page.getByRole('button', { name: 'Ripristina la situazione esempio' }).click();
 
-// 1. il frequentatore registra un task dal telefono: il logbook e il report si aggiornano
+// 1. il frequentatore registra un task dal telefono: logbook e report si aggiornano
 await profilo('Matteo Gallo');
 await page.goto(`${BASE}#/logbook?ch=44`);
-await pausa();
+await pausa(500);
 await page.locator('.task-riga').first().click();
 await page.getByRole('button', { name: 'Registra questo task' }).click();
 await page.getByLabel(/ET – tempo stimato/).fill('35');
@@ -57,10 +63,35 @@ assert.ok(await page.getByLabel(/^Data/).evaluate((el) => el.validity.rangeOverf
 assert.ok(await page.locator('.mantine-Drawer-content').isVisible(), 'registrazione non salvata');
 await page.keyboard.press('Escape');
 
-// 3. il TM vede subito la registrazione e crea un account
+// 3. il frequentatore vede solo il proprio corso e non i compagni
+assert.equal(await page.locator('.scheda-corso').count(), 0, 'il frequentatore non gestisce i corsi');
+await page.goto(`${BASE}#/teoria`);
+await pausa();
+assert.match(await page.locator('.cartiglio').innerText(), /ore/i, 'il frequentatore vede la situazione della teoria');
+
+// 4. il direttore prepara una settimana di lezioni e vede il conto a scalare
+await esci();
+await profilo('Marco Neri');
+await apriCorso('T1-2026/2');
+await page.goto(`${BASE}#/settimana?c=c-2026-2&w=2026-10-05`);
+await pausa(500);
+const residuoPrima = await page.locator('.conto-scalare b').innerText();
+await page.getByRole('button', { name: 'Genera' }).click();
+await pausa();
+assert.ok((await page.locator('.lezione').count()) > 0, 'la generazione propone lezioni');
+await page.getByRole('button', { name: 'Salva' }).click();
+await page.getByText('Programma della settimana salvato').waitFor({ timeout: 15000 });
+await pausa(500);
+const residuoDopo = await page.locator('.conto-scalare b').innerText();
+assert.notEqual(residuoPrima, residuoDopo, 'il conto a scalare è diminuito');
+
+// 5. il TM crea un account e lo iscrive al corso
 await esci();
 await profilo('Luca Ferri');
-assert.match(await page.locator('.sezione').last().locator('tbody tr').first().textContent(), /Matteo Gallo/, 'ultima registrazione visibile al TM');
+await apriCorso('T1-2026/1');
+await page.goto(`${BASE}#/distinta?c=c-2026-1`);
+await pausa(500);
+assert.match(await page.locator('body').innerText(), /Matteo Gallo/, 'il TM vede i frequentatori del corso');
 await page.goto(`${BASE}#/account`);
 await pausa();
 await page.getByRole('button', { name: 'Nuovo account' }).click();
@@ -68,8 +99,15 @@ await page.getByLabel('Username').fill('nuovo.allievo');
 const password = await page.getByLabel('Password provvisoria').inputValue();
 await page.getByRole('button', { name: 'Crea account' }).click();
 await page.getByText('Credenziali da consegnare di persona').waitFor();
+await page.getByRole('button', { name: 'Chiudi' }).click();
+await page.goto(`${BASE}#/corso?c=c-2026-1`);
+await pausa();
+await page.getByRole('combobox', { name: 'Aggiungi al corso' }).click();
+await page.getByRole('option', { name: /nuovo\.allievo/ }).click();
+await page.getByRole('button', { name: 'Iscrivi' }).click();
+await page.getByText('Iscritto al corso').waitFor({ timeout: 15000 });
 
-// 4. primo accesso del nuovo frequentatore: cambio password e Personal Data obbligatori
+// 6. primo accesso del nuovo frequentatore: cambio password e Personal Data
 await esci();
 await page.locator('input[autocomplete=username]').fill('nuovo.allievo');
 await page.locator('input[autocomplete=current-password]').fill(password);
@@ -89,12 +127,15 @@ await page.getByRole('button', { name: 'Salva personal data' }).click();
 await page.locator('.cartiglio').waitFor();
 assert.ok(await page.locator('.cartiglio').getByText('Serg. Marco Villa').isVisible(), 'cartiglio del nuovo frequentatore');
 
-// 5. l'istruttore non può modificare
+// 7. l'istruttore legge e basta, e solo i suoi corsi
 await esci();
 await profilo('Paolo Rinaldi');
-await page.goto(`${BASE}#/logbook?f=u-romano`);
+await page.goto(`${BASE}#/logbook?c=c-2026-1&f=u-romano`);
 await pausa();
 assert.equal(await page.getByRole('button', { name: /Registra/ }).count(), 0, 'istruttore in sola lettura');
+await page.goto(`${BASE}#/settimana?c=c-2026-1`);
+await pausa();
+assert.equal(await page.getByRole('button', { name: 'Genera' }).count(), 0, 'istruttore non genera il programma');
 
 await browser.close();
 assert.deepEqual(errori, [], `errori JavaScript: ${errori.join('; ')}`);

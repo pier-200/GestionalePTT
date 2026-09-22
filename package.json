@@ -1,8 +1,8 @@
 {
-  "name": "gestionale-ptt",
+  "name": "gestionale-type-training",
   "private": true,
   "version": "1.0.0",
-  "description": "Gestionale Practical Type Training: logbook digitale del Practical Training Record CH-47F B1.3.",
+  "description": "Gestionale Type Training: corsi CH-47F con parte teorica (MTT) e parte pratica (PTT).",
   "type": "module",
   "scripts": {
     "dev": "vite",

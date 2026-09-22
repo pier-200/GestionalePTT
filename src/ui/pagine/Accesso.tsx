@@ -5,7 +5,9 @@ import type { DemoBackend } from '../../backend/demo';
 import { formatoPercentuale } from '../../dominio/compliance';
 import { messaggioErrore } from '../../dominio/errori';
 import { ETICHETTA_RUOLO } from '../../dominio/tipi';
-import { frequentatori, nomeUtente, situazione } from '../../dominio/viste';
+import { nomeUtente, situazione } from '../../dominio/viste';
+import { corsiDi } from '../../dominio/motore';
+import { chiaveOrdine } from '../../dominio/viste';
 import { useStato } from '../stato';
 
 function Testata() {
@@ -49,7 +51,10 @@ export function Accesso() {
 
   const esempio = demo ? demo.datiCorrenti() : null;
   const profili = esempio
-    ? [...esempio.utenti.filter((u) => u.ruolo !== 'trainee' && u.attivo), ...frequentatori(esempio)]
+    ? [
+        ...esempio.utenti.filter((u) => u.ruolo !== 'trainee' && u.attivo),
+        ...esempio.utenti.filter((u) => u.ruolo === 'trainee' && u.attivo).sort((a, b) => chiaveOrdine(esempio, a).localeCompare(chiaveOrdine(esempio, b))),
+      ]
     : [];
 
   return (
@@ -85,7 +90,8 @@ export function Accesso() {
             </Text>
             <ul className="profili">
               {profili.map((u) => {
-                const s = u.ruolo === 'trainee' ? situazione(esempio, u) : null;
+                const suoCorso = corsiDi(esempio, u).find((c) => c.programma_pratico);
+                const s = u.ruolo === 'trainee' && suoCorso ? situazione(esempio, suoCorso, u) : null;
                 return (
                   <li key={u.id}>
                     <button type="button" onClick={() => void prova(u.id, () => demo.accediCome(u.username))} disabled={attesa != null}>

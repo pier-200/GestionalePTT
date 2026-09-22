@@ -1,33 +1,74 @@
-# Gestionale Practical Type Training (PTT)
+# Gestionale Type Training
 
-Logbook digitale del **Practical Training Record CH-47F Cat. B1.3** (Allegato 1, ed. 00.01 del 4 dicembre 2025).
-Sostituisce la compilazione su Excel: ogni frequentatore registra i task eseguiti, il Compliance Report e i grafici si
-ricalcolano subito e il Training Manager vede l'intero corso senza raccogliere file.
+Gestione completa dei corsi **Type Training CH-47F Cat. B1.3**: parte **teorica (MTT)** con programma settimanale e
+parte **pratica (PTT)** con il logbook del Practical Training Record. Più corsi in parallelo, ciascuno con i propri
+frequentatori, istruttori e programmi.
 
-**App online (dati condivisi su Supabase):** https://pier-200.github.io/GestionalePTT/
-**Prova senza account (dati solo nel browser):** https://pier-200.github.io/GestionalePTT/?demo
-Sul cellulare si installa come app **PTT** (Android: menu ⋮ → «Installa app»; iPhone: Condividi → «Aggiungi alla schermata Home»).
+**Applicativi pubblicati** (stessa app, tre collegamenti):
 
-Specifica completa: [PROGETTO_Logbook_PTT.md](PROGETTO_Logbook_PTT.md).
+| Link | A chi | Cosa mostra |
+|---|---|---|
+| https://pier-200.github.io/GestionaleTypeTraining/?app=mtt | frequentatori e istruttori | solo la parte teorica: programma settimanale, situazione della teoria |
+| https://pier-200.github.io/GestionaleTypeTraining/?app=ptt | frequentatori e istruttori | solo la parte pratica: logbook, Compliance Report, istruttori, dati |
+| https://pier-200.github.io/GestionaleTypeTraining/ | Training Manager e direttori | tutto: corsi, iscritti, account, teoria e pratica |
+| https://pier-200.github.io/GestionaleTypeTraining/?demo | chiunque | prova con la situazione esempio, dati solo nel browser |
 
-## Cosa fa
+Ogni collegamento si installa sul cellulare come app a sé (**MTT**, **PTT**, **TT**) con icona e nome propri.
 
-| Pagina | Frequentatore | Istruttore | Training Manager |
-|---|---|---|---|
-| Tavola (cartiglio, requisiti, quote per modulo e task type, chapter scoperti) | propria | tutti, lettura | tutti |
-| Logbook: 190 task per modulo → chapter → task, registrazioni con data, A/C o SIM/CLA, ET, location, istruttore | proprio | lettura | correzioni su tutti |
-| Compliance Report 4.1 / 4.2 / 4.3 con esito complessivo; «Stampa / PDF» produce il modulo ufficiale compilato | proprio | tutti | tutti |
-| Practical Instructors (calcolata dalle registrazioni) | proprio | tutti | tutti |
-| Personal Data / Practical Type Training Data | modifica i propri PD, legge i TD | lettura | tutto, anche per l'intero corso |
-| Situazione del corso (distinta, esiti, ultime registrazioni) | – | sì | sì |
-| Account e corso (crea, modifica, disattiva account; elenco istruttori) | – | – | sì |
-| Esportazione Excel (singolo: 5 fogli; complessivo: riepilogo + registrazioni) e CSV | proprio logbook | sì | sì |
+Specifica iniziale: [PROGETTO_Logbook_PTT.md](PROGETTO_Logbook_PTT.md).
 
-Regole di conformità (Generality and Purpose): **≥ 50%** dei task per ciascun modulo e per ciascun task type,
-**≥ 1** task per ciascun chapter; più registrazioni dello stesso task contano una volta. Il task type MEL ha 0 task
-applicabili al CH-47F e risulta «n.a.». La Commissione tecnica esaminatrice non è gestita.
+## Corsi, ruoli e permessi
 
-Primo accesso: password provvisoria da sostituire, poi il frequentatore compila i Personal Data.
+Il Training Manager crea i corsi, sceglie i programmi (teorico e/o pratico) e vi iscrive le persone.
+
+| | Frequentatore | Istruttore | Direttore del corso | Training Manager |
+|---|---|---|---|---|
+| Corsi visibili | i propri | quelli a cui è iscritto | quelli che dirige | tutti |
+| Logbook (PTT) | solo il proprio, in scrittura | lettura di tutto il corso | lettura | correzioni su tutti |
+| Programma settimanale (MTT) | lettura | lettura | **prepara e assegna gli istruttori** | idem |
+| Materie e abilitazioni | – | lettura | modifica | modifica |
+| Iscrizioni e dati del corso | – | – | modifica | modifica |
+| Account | – | – | – | crea, disattiva, reimposta password |
+
+## Parte teorica (MTT)
+
+- Programma dal file ufficiale (`MTT_B1.3_CH-47F.xlsx`): **51 materie in 8 moduli, 219 ore**. Ogni materia dura i
+  «Tuition Min.» del programma e copre uno o più chapter.
+- **Programma settimanale**: si sceglie la settimana e si preme «Genera»: l'app riempie i giorni liberi seguendo
+  l'ordine del programma, con un massimo di 6 ore dal lunedì al giovedì e 3 il venerdì (modificabile per corso).
+  Una materia lunga si spezza su più giorni; per ogni lezione si sceglie l'istruttore tra quelli **abilitati** a quella materia.
+- **Conto a scalare**: le ore che restano compaiono sotto ogni lezione mentre si compone la settimana, nella barra in
+  alto e nella pagina «Situazione della teoria» (per modulo, per materia, ore già svolte e settimane stimate).
+- **Materie e istruttori**: il Training Manager o il direttore indicano quali materie ogni istruttore può erogare.
+
+## Parte pratica (PTT)
+
+- Catalogo dal PTR ufficiale: **190 task, 68 chapter, 8 moduli**.
+- Conformità: **≥ 50%** dei task per ciascun modulo e task type, **≥ 1** task per ciascun chapter; più registrazioni
+  dello stesso task contano una volta. MEL ha 0 task applicabili e risulta «n.a.».
+- Registrazione di un task: data, aeromobile (matricola) oppure SIM/CLA, ET in minuti, luogo, istruttore. Nel logbook
+  ogni riga mostra **ID del task e chapter** in evidenza.
+- Compliance Report sempre aggiornato; «Stampa / PDF» produce il modulo ufficiale compilato (vedi sotto).
+- Esportazioni: Excel del singolo (5 fogli), Excel complessivo del corso, CSV.
+
+## Programmi di corso
+
+I programmi stanno nell'applicazione, in `src/dati/programmi/`, e si scelgono per ogni corso:
+
+```bash
+py -3.11 scripts/import_catalogo.py "<PTR.xlsx>" <id-programma>        # parte pratica
+py -3.11 scripts/import_programma_mtt.py "<MTT.xlsx>" <id-programma>   # parte teorica
+```
+
+Il file generato entra da solo nell'elenco dei programmi disponibili: per un corso diverso (altro aeromobile o altra
+categoria) bastano i due Excel.
+
+## Stampa del Compliance Report
+
+«Stampa / PDF» apre le 4 pagine del modulo ufficiale (`public/modelli/compliance-report.pdf`) e vi scrive soltanto i
+valori: Organization, Grade, First name, Surname, MAML, task eseguiti e percentuali di ogni riga, Place e Date. Le
+righe barrate nel modulo (21A, 27) restano vuote. Logo facoltativo in `public/modelli/logo.png`. Le posizioni si
+ricavano dal PDF con `py -3.11 scripts/layout_compliance.py`.
 
 ## Archivio dei dati
 
@@ -35,37 +76,26 @@ Si sceglie in [`public/config.json`](public/config.json), senza ricompilare:
 
 | `archivio.tipo` | Dove stanno i dati | Permessi | Aggiornamento |
 |---|---|---|---|
-| `demo` (sempre disponibile con `?demo`) | nel browser di chi apre l'app, partendo dalla situazione esempio | applicati dall'app | tra schede dello stesso browser |
-| `supabase` (attuale) | database PostgreSQL centrale (Supabase) | **dal database** (Row Level Security) | in tempo reale |
-| `github` | repository GitHub privato, accessi con portachiavi cifrato | applicati dall'app | controllo ogni 30 s |
+| `demo` (sempre con `?demo`) | nel browser di chi apre l'app | applicati dall'app | tra schede |
+| `supabase` (in uso) | PostgreSQL centrale | **dal database**, per corso (RLS) | in tempo reale |
+| `github` | repository privato con portachiavi cifrato | applicati dall'app | controllo ogni 30 s |
 
-Supabase è l'archivio consigliato dal documento di progetto; l'archivio GitHub usa solo domini GitHub (utile se la rete
-dell'ufficio blocca altri siti), ma un utente esperto che ha accesso potrebbe alterare dati altrui.
-Istruzioni passo passo: [docs/PUBBLICAZIONE.md](docs/PUBBLICAZIONE.md).
+Istruzioni e migrazione: [docs/PUBBLICAZIONE.md](docs/PUBBLICAZIONE.md).
 
-> La repository è pubblica: non inserire mai dati reali o credenziali nei file. La situazione esempio è inventata.
-
-## Stampa del Compliance Report
-
-«Stampa / PDF» apre le 4 pagine del modulo ufficiale (`public/modelli/compliance-report.pdf`, pagg. 36-39 dell'Allegato 1)
-e vi scrive soltanto i valori: Organization, Grade, First name, Surname, MAML, task eseguiti e percentuali di ogni riga,
-Place e Date. Le righe barrate nel modulo (21A, 27) restano vuote. Un logo facoltativo si aggiunge pubblicando
-`public/modelli/logo.png`. Le posizioni sono ricavate dal PDF con `py -3.11 scripts/layout_compliance.py`.
+> La repository è pubblica: mai dati reali né credenziali nei file. La situazione esempio è inventata.
 
 ## Situazione esempio
 
-Nella modalità demo i profili sono pronti nella pagina di accesso: Training Manager, due istruttori e sei frequentatori a diversi
-stadi (una conforme, uno con 3 chapter scoperti, altri in corso, uno appena creato che deve compilare i Personal Data).
-Il pulsante «Ripristina la situazione esempio» riporta i dati allo stato iniziale.
-Nell'archivio Supabase la stessa situazione esempio è caricata con account propri (password nel file locale delle credenziali);
-prima dell'uso reale si elimina con `database/elimina_esempio.sql`.
+Due corsi: il 1° 2026 (teoria in corso e pratica avviata, 6 frequentatori) e il 2° 2026 (solo teoria, appena iniziato,
+3 frequentatori). Profili pronti nella pagina di accesso in modalità demo: Training Manager, direttore del corso,
+tre istruttori e i frequentatori. «Ripristina la situazione esempio» riporta tutto allo stato iniziale.
 
 ## Sviluppo
 
 ```bash
 npm install
 npm run dev          # http://localhost:5174
-npm test             # calcoli, permessi e schema SQL (PGlite)
+npm test             # dominio, pianificazione e schema SQL (PGlite)
 npm run build && npx vite preview --port 4174 && npm run e2e   # prova nel browser Edge
 npm run pubblica     # compila e aggiorna GitHub Pages (ramo gh-pages)
 ```
@@ -73,15 +103,15 @@ npm run pubblica     # compila e aggiorna GitHub Pages (ramo gh-pages)
 Struttura:
 
 ```
-database/catalogo.sql        catalogo dei task (generato)       database/schema.sql   tabelle + RLS Supabase
-scripts/import_catalogo.py   importa il catalogo dall'Excel     scripts/pubblica.mjs  pubblicazione su Pages
-scripts/layout_compliance.py posizioni dei valori nel modulo PDF   scripts/semina-supabase.mjs  TM e situazione esempio su Supabase
-supabase/functions/gestione-utenti   creazione/modifica account (Edge Function)
-src/dominio/   catalogo, compliance, motore dei comandi (permessi e validazioni), viste
-src/backend/   archivi demo, github, supabase         src/esporta.ts   Excel e CSV     src/stampaReport.ts   PDF sul modulo ufficiale
-src/ui/        interfaccia (pagine, componenti, stile «tavola tecnica»)
-tests/         test di dominio, schema SQL ed end-to-end
+database/schema.sql            tabelle, RLS per corso, tempo reale       database/migrazione-corsi.sql  passaggio al modello a corsi
+scripts/import_catalogo.py     programma pratico dall'Excel             scripts/import_programma_mtt.py  programma teorico
+scripts/layout_compliance.py   posizioni dei valori nel modulo PDF      scripts/semina-supabase.mjs      TM e situazione esempio
+supabase/functions/gestione-utenti   creazione e modifica account (Edge Function)
+src/dominio/    programmi, compliance, pianificazione, motore dei comandi (permessi), viste
+src/backend/    archivi demo, github, supabase                          src/esporta.ts  Excel e CSV
+src/ui/         interfaccia: guscio, pagine MTT e PTT, stile «tavola tecnica»
+tests/          dominio e pianificazione, schema SQL, end-to-end
 ```
 
-Il catalogo si rigenera con `npm run catalogo` dopo aver copiato `PTR_B1.3_CH-47F.xlsx` in `docs/sorgenti/`
-(Excel e PDF originali restano fuori dalla repository pubblica, tranne il modulo del Compliance Report usato per la stampa).
+Gli Excel e i PDF originali restano fuori dalla repository pubblica (tranne il modulo vuoto del Compliance Report,
+necessario alla stampa): vanno copiati in `docs/sorgenti/` per rigenerare i programmi.

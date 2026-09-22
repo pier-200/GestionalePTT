@@ -1,28 +1,29 @@
 import { useState } from 'react';
 import { Button } from '@mantine/core';
 import { IconAlertTriangleFilled, IconCircleCheckFilled, IconPlus } from '@tabler/icons-react';
-import { CHAPTER_PER_CODICE } from '../../dominio/catalogo';
-import type { Utente } from '../../dominio/tipi';
+import { indice, programmaPratico } from '../../dominio/programmi';
+import type { Corso, Utente } from '../../dominio/tipi';
 import { situazione } from '../../dominio/viste';
 import { Cartiglio } from '../componenti/Cartiglio';
 import { Revisioni } from '../componenti/Revisioni';
 import { IntestazionePagina, Palloncino, Quota, ScalaQuote, Sezione } from '../componenti/disegno';
 import { ConFrequentatore } from '../componenti/Frequentatore';
 import { ModuloRegistrazione } from '../componenti/ModuloRegistrazione';
-import { linkFrequentatore } from '../navigazione';
+import { link as collegamento } from '../navigazione';
 import { useStato } from '../stato';
 
 export function Tavola() {
-  return <ConFrequentatore>{(f) => <TavolaDi f={f} />}</ConFrequentatore>;
+  return <ConFrequentatore>{(f, corso) => <TavolaDi f={f} corso={corso} />}</ConFrequentatore>;
 }
 
-function TavolaDi({ f }: { f: Utente }) {
+function TavolaDi({ f, corso }: { f: Utente; corso: Corso }) {
   const { dati, utente } = useStato();
   const [registra, setRegistra] = useState(false);
   if (!dati || !utente) return null;
-  const s = situazione(dati, f);
+  const s = situazione(dati, corso, f);
   const puoScrivere = utente.ruolo === 'admin' || utente.id === f.id;
-  const link = (percorso: string, extra = '') => linkFrequentatore(percorso, utente, f.id, extra);
+  const chapterPerCodice = programmaPratico(corso.programma_pratico) ? indice(programmaPratico(corso.programma_pratico)!).chapterPerCodice : new Map();
+  const link = (percorso: string, extra = '') => collegamento(percorso, corso, f.id, extra);
   const { moduli, tipi, chapter } = s.mancanti;
   const nMancanze = moduli.length + tipi.length + chapter.length;
   const tipiApplicabili = s.report.perTipo.filter((t) => t.previsti > 0);
@@ -31,7 +32,7 @@ function TavolaDi({ f }: { f: Utente }) {
   return (
     <>
       {utente.ruolo !== 'trainee' && <IntestazionePagina titolo="Tavola del frequentatore" />}
-      <Cartiglio dati={dati} utente={f} s={s} />
+      <Cartiglio dati={dati} corso={corso} utente={f} s={s} />
 
       {puoScrivere && (
         <div className="azione-fissa" style={{ marginTop: 16 }}>
@@ -83,7 +84,7 @@ function TavolaDi({ f }: { f: Utente }) {
                 </p>
                 <div className="palloncini">
                   {chapter.map((c) => (
-                    <a key={c.codice} href={link('/logbook', `ch=${encodeURIComponent(c.codice)}`)} title={CHAPTER_PER_CODICE.get(c.codice)?.titolo} aria-label={`Chapter ${c.codice}, ${CHAPTER_PER_CODICE.get(c.codice)?.titolo}: nessun task`}>
+                    <a key={c.codice} href={link('/logbook', `ch=${encodeURIComponent(c.codice)}`)} title={chapterPerCodice.get(c.codice)?.titolo} aria-label={`Chapter ${c.codice}, ${chapterPerCodice.get(c.codice)?.titolo}: nessun task`}>
                       <Palloncino codice={c.codice} stato="manca" />
                     </a>
                   ))}
@@ -133,7 +134,7 @@ function TavolaDi({ f }: { f: Utente }) {
         )}
       </Sezione>
 
-      {puoScrivere && <ModuloRegistrazione aperto={registra} chiudi={() => setRegistra(false)} frequentatore={f} />}
+      {puoScrivere && <ModuloRegistrazione aperto={registra} chiudi={() => setRegistra(false)} frequentatore={f} corso={corso} />}
     </>
   );
 }

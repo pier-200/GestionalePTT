@@ -1,10 +1,12 @@
-import { TASK_PER_ID } from '../../dominio/catalogo';
+import { PROGRAMMI_PRATICI, indice } from '../../dominio/programmi';
 import type { Dati, Registrazione } from '../../dominio/tipi';
 import { esecuzione, formatoData, formatoIstante, nomeIstruttore, nomeUtente } from '../../dominio/viste';
 
 /** Blocco revisioni: ultime registrazioni salvate. Tabella su schermi larghi, voci impilate sul telefono. */
-export function Revisioni({ dati, registrazioni, corso, apri }: { dati: Dati; registrazioni: Registrazione[]; corso?: boolean; apri?: (userId: string) => void }) {
+export function Revisioni({ dati, registrazioni, conNome, apri }: { dati: Dati; registrazioni: Registrazione[]; conNome?: boolean; apri?: (userId: string) => void }) {
   const istruttore = (r: Registrazione) => nomeIstruttore(dati.istruttori.find((i) => i.id === r.instructor_id));
+  // il task appartiene al programma pratico del corso: negli elenchi brevi basta cercarlo tra i programmi caricati
+  const task = (id: number) => PROGRAMMI_PRATICI.map((p) => indice(p).taskPerId.get(id)).find(Boolean);
   return (
     <>
       <div className="solo-largo scorre">
@@ -12,7 +14,7 @@ export function Revisioni({ dati, registrazioni, corso, apri }: { dati: Dati; re
           <thead>
             <tr>
               <th>Data</th>
-              {corso && <th>Frequentatore</th>}
+              {conNome && <th>Frequentatore</th>}
               <th>Task</th>
               <th>A/C</th>
               <th>Instructor</th>
@@ -21,26 +23,26 @@ export function Revisioni({ dati, registrazioni, corso, apri }: { dati: Dati; re
           </thead>
           <tbody>
             {registrazioni.map((r) => {
-              const t = TASK_PER_ID.get(r.task_id)!;
+              const t = task(r.task_id);
               return (
                 <tr key={r.id} className={apri ? 'cliccabile' : undefined} onClick={apri ? () => apri(r.user_id) : undefined}>
                   <td className="cifre" style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>
                     {formatoData(r.data)}
                   </td>
-                  {corso && <td style={{ fontWeight: 600, minWidth: 150 }}>{nomeUtente(dati, r.user_id)}</td>}
+                  {conNome && <td style={{ fontWeight: 600, minWidth: 150 }}>{nomeUtente(dati, r.user_id)}</td>}
                   <td style={{ minWidth: 220 }}>
                     <span className="cifre" style={{ fontWeight: 600 }}>
-                      {t.id} · Ch {t.chapter} · {t.tipo}
+                      {t?.id ?? r.task_id} · Ch {t?.chapter} · {t?.tipo}
                     </span>
                     <div className="debole" style={{ fontSize: '0.875rem', lineHeight: 1.35 }}>
-                      {t.descrizione}
+                      {t?.descrizione}
                     </div>
                   </td>
                   <td style={{ whiteSpace: 'nowrap' }}>{esecuzione(r)}</td>
                   <td style={{ minWidth: 140 }}>{istruttore(r)}</td>
                   <td className="debole" style={{ fontSize: '0.8125rem', minWidth: 120 }}>
                     {formatoIstante(r.modificato_il)}
-                    {(!corso || r.modificato_da !== r.user_id) && <div>{nomeUtente(dati, r.modificato_da)}</div>}
+                    {(!conNome || r.modificato_da !== r.user_id) && <div>{nomeUtente(dati, r.modificato_da)}</div>}
                   </td>
                 </tr>
               );
@@ -50,17 +52,17 @@ export function Revisioni({ dati, registrazioni, corso, apri }: { dati: Dati; re
       </div>
       <ul className="revisioni-voci solo-stretto">
         {registrazioni.map((r) => {
-          const t = TASK_PER_ID.get(r.task_id)!;
+          const t = task(r.task_id);
           const contenuto = (
             <>
               <div className="rv-testa">
                 <span>
-                  {t.id} · Ch {t.chapter} · {t.tipo}
+                  {t?.id ?? r.task_id} · Ch {t?.chapter} · {t?.tipo}
                 </span>
                 <span className="cifre">{formatoData(r.data)}</span>
               </div>
-              {corso && <div style={{ fontWeight: 600 }}>{nomeUtente(dati, r.user_id)}</div>}
-              <p className="rv-desc">{t.descrizione}</p>
+              {conNome && <div style={{ fontWeight: 600 }}>{nomeUtente(dati, r.user_id)}</div>}
+              <p className="rv-desc">{t?.descrizione}</p>
               <div className="rv-piede">
                 {esecuzione(r)} · {istruttore(r)}
                 <br />

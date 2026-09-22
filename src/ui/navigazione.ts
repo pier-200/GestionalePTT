@@ -1,85 +1,158 @@
 import {
   IconBook2,
+  IconCalendarWeek,
+  IconChalkboard,
   IconClipboardList,
   IconId,
   IconLayoutGrid,
   IconReportAnalytics,
+  IconSchool,
   IconTable,
   IconUserCircle,
   IconUsersGroup,
   IconUserShield,
 } from '@tabler/icons-react';
 import type { Icon } from '@tabler/icons-react';
-import type { Dati, Utente } from '../dominio/tipi';
-import { frequentatori } from '../dominio/viste';
+import { corsiDi, ruoloNelCorso } from '../dominio/motore';
+import type { Corso, Dati, Utente } from '../dominio/tipi';
 import { usePosizione } from './router';
 import { useStato } from './stato';
+
+/**
+ * Due applicativi dalla stessa pubblicazione: `?app=mtt` (parte teorica) e `?app=ptt` (parte pratica).
+ * Senza parametro si vede tutto: è il collegamento del Training Manager.
+ */
+export type Applicativo = 'mtt' | 'ptt' | 'tutto';
+
+export function applicativo(): Applicativo {
+  const v = new URLSearchParams(window.location.search).get('app');
+  return v === 'mtt' || v === 'ptt' ? v : 'tutto';
+}
+
+export const NOME_APPLICATIVO: Record<Applicativo, string> = {
+  mtt: 'MTT · parte teorica',
+  ptt: 'PTT · parte pratica',
+  tutto: 'Type Training',
+};
 
 export interface Voce {
   a: string;
   etichetta: string;
   breve: string;
   icona: Icon;
-  /** Pagina riferita a un frequentatore (per TM e istruttori richiede la selezione). */
+  /** Pagina riferita a un frequentatore: per lo staff richiede la scelta del frequentatore. */
   frequentatore?: boolean;
+  parte?: 'mtt' | 'ptt';
+  /** Solo per chi segue il corso (Training Manager, direttore, istruttori). */
+  staff?: boolean;
 }
 
-const PAGINE_FREQUENTATORE: Voce[] = [
-  { a: '/tavola', etichetta: 'Tavola', breve: 'Tavola', icona: IconLayoutGrid, frequentatore: true },
-  { a: '/logbook', etichetta: 'Logbook', breve: 'Logbook', icona: IconClipboardList, frequentatore: true },
-  { a: '/report', etichetta: 'Compliance Report', breve: 'Report', icona: IconReportAnalytics, frequentatore: true },
-  { a: '/istruttori', etichetta: 'Practical Instructors', breve: 'Istruttori', icona: IconUsersGroup, frequentatore: true },
-  { a: '/dati', etichetta: 'Personal & Training Data', breve: 'Dati', icona: IconId, frequentatore: true },
+const TEORIA: Voce[] = [
+  { a: '/settimana', etichetta: 'Programma settimanale', breve: 'Settimana', icona: IconCalendarWeek, parte: 'mtt' },
+  { a: '/teoria', etichetta: 'Situazione della teoria', breve: 'Teoria', icona: IconSchool, parte: 'mtt' },
+  { a: '/materie', etichetta: 'Materie e istruttori', breve: 'Materie', icona: IconChalkboard, parte: 'mtt', staff: true },
 ];
 
-export const GENERALITA: Voce = { a: '/generalita', etichetta: 'Generality and Purpose', breve: 'Generality', icona: IconBook2 };
+const PRATICA: Voce[] = [
+  { a: '/distinta', etichetta: 'Situazione pratica', breve: 'Pratica', icona: IconTable, parte: 'ptt', staff: true },
+  { a: '/tavola', etichetta: 'Tavola', breve: 'Tavola', icona: IconLayoutGrid, frequentatore: true, parte: 'ptt' },
+  { a: '/logbook', etichetta: 'Logbook', breve: 'Logbook', icona: IconClipboardList, frequentatore: true, parte: 'ptt' },
+  { a: '/report', etichetta: 'Compliance Report', breve: 'Report', icona: IconReportAnalytics, frequentatore: true, parte: 'ptt' },
+  { a: '/istruttori', etichetta: 'Practical Instructors', breve: 'Istruttori', icona: IconUsersGroup, frequentatore: true, parte: 'ptt' },
+  { a: '/dati', etichetta: 'Personal & Training Data', breve: 'Dati', icona: IconId, frequentatore: true, parte: 'ptt' },
+];
+
+export const CORSO: Voce = { a: '/corso', etichetta: 'Corso e iscritti', breve: 'Corso', icona: IconTable };
+export const CORSI: Voce = { a: '/corsi', etichetta: 'Corsi', breve: 'Corsi', icona: IconSchool };
+export const ACCOUNT: Voce = { a: '/account', etichetta: 'Account', breve: 'Account', icona: IconUserShield };
+export const GENERALITA: Voce = { a: '/generalita', etichetta: 'Generality and Purpose', breve: 'Generality', icona: IconBook2, parte: 'ptt' };
 export const PROFILO: Voce = { a: '/profilo', etichetta: 'Profilo e password', breve: 'Profilo', icona: IconUserCircle };
-export const CORSO: Voce = { a: '/', etichetta: 'Situazione del corso', breve: 'Corso', icona: IconTable };
-export const ACCOUNT: Voce = { a: '/account', etichetta: 'Account e corso', breve: 'Account', icona: IconUserShield };
 
-export function vociPer(utente: Utente) {
-  if (utente.ruolo === 'trainee') {
-    return { corso: [] as Voce[], frequentatore: [{ ...PAGINE_FREQUENTATORE[0], a: '/' }, ...PAGINE_FREQUENTATORE.slice(1)], altro: [GENERALITA, PROFILO] };
-  }
-  return { corso: utente.ruolo === 'admin' ? [CORSO, ACCOUNT] : [CORSO], frequentatore: PAGINE_FREQUENTATORE, altro: [GENERALITA, PROFILO] };
+export interface Menu {
+  corso: Voce[];
+  teoria: Voce[];
+  pratica: Voce[];
+  altro: Voce[];
+  /** Voci nell'ordine in cui appaiono (il frequentatore trova prima il proprio logbook). */
+  ordinate: Voce[];
 }
 
-const CHIAVE = 'ptt:frequentatore';
-
-function ultimoScelto(): string | null {
-  try {
-    return sessionStorage.getItem(CHIAVE);
-  } catch {
-    return null;
-  }
+/** Voci di menu per il ruolo nel corso e per l'applicativo aperto. */
+export function menuPer(utente: Utente, corso: Corso | undefined, ruolo: string | null, app: Applicativo): Menu {
+  const staff = ruolo === 'admin' || ruolo === 'direttore' || ruolo === 'instructor';
+  const mostra = (v: Voce) =>
+    (app === 'tutto' || !v.parte || v.parte === app) && (!v.parte || (v.parte === 'mtt' ? corso?.programma_teorico : corso?.programma_pratico)) && (!v.staff || staff);
+  const menu = {
+    corso: [...(utente.ruolo === 'admin' ? [CORSI] : []), ...(corso && staff ? [CORSO] : [])],
+    teoria: TEORIA.filter(mostra),
+    pratica: PRATICA.filter(mostra),
+    altro: [...(mostra(GENERALITA) ? [GENERALITA] : []), ...(utente.ruolo === 'admin' ? [ACCOUNT] : []), PROFILO],
+  };
+  const parti = utente.ruolo === 'trainee' ? [menu.pratica, menu.teoria] : [menu.teoria, menu.pratica];
+  return { ...menu, ordinate: [...parti.flat(), ...menu.corso, ...menu.altro] };
 }
 
-export function ricordaFrequentatore(id: string) {
+const CHIAVE_CORSO = 'ptt:corso';
+const CHIAVE_FREQ = 'ptt:frequentatore';
+
+const ricorda = (chiave: string, id: string) => {
   try {
-    sessionStorage.setItem(CHIAVE, id);
+    sessionStorage.setItem(chiave, id);
   } catch {
     /* ignorato */
   }
+};
+const ricordato = (chiave: string) => {
+  try {
+    return sessionStorage.getItem(chiave);
+  } catch {
+    return null;
+  }
+};
+
+export const ricordaCorso = (id: string) => ricorda(CHIAVE_CORSO, id);
+export const ricordaFrequentatore = (id: string) => ricorda(CHIAVE_FREQ, id);
+
+/** Corso su cui si sta lavorando: dal parametro `c`, altrimenti l'ultimo scelto o l'unico disponibile. */
+export function scegliCorso(dati: Dati, utente: Utente, query: URLSearchParams): Corso | undefined {
+  const elenco = corsiDi(dati, utente);
+  const id = query.get('c') ?? ricordato(CHIAVE_CORSO);
+  return elenco.find((c) => c.id === id) ?? (elenco.length === 1 ? elenco[0] : undefined);
 }
 
-/** Il frequentatore a cui si riferiscono le pagine: sé stesso per il trainee, quello scelto per TM e istruttori. */
-export function scegliFrequentatore(dati: Dati, utente: Utente, query: URLSearchParams): Utente | null {
+export function useCorso(): Corso | undefined {
+  const { dati, utente } = useStato();
+  const { query } = usePosizione();
+  if (!dati || !utente) return undefined;
+  return scegliCorso(dati, utente, query);
+}
+
+/** Frequentatore a cui si riferiscono le pagine pratiche: sé stesso, oppure quello scelto dallo staff. */
+export function scegliFrequentatore(dati: Dati, utente: Utente, corso: Corso | undefined, query: URLSearchParams): Utente | null {
   if (utente.ruolo === 'trainee') return utente;
-  const elenco = frequentatori(dati, true);
-  const id = query.get('f') ?? ultimoScelto();
-  return elenco.find((u) => u.id === id) ?? null;
+  const ids = new Set(dati.iscrizioni.filter((i) => i.corso_id === corso?.id && i.ruolo === 'trainee').map((i) => i.user_id));
+  const id = query.get('f') ?? ricordato(CHIAVE_FREQ);
+  return dati.utenti.find((u) => u.id === id && ids.has(u.id)) ?? null;
 }
 
 export function useFrequentatore(): Utente | null {
   const { dati, utente } = useStato();
   const { query } = usePosizione();
+  const corso = useCorso();
   if (!dati || !utente) return null;
-  return scegliFrequentatore(dati, utente, query);
+  return scegliFrequentatore(dati, utente, corso, query);
 }
 
-/** Collegamento a una pagina del frequentatore, con il parametro f per TM e istruttori. */
-export function linkFrequentatore(percorso: string, utente: Utente, f: string | null | undefined, extra = '') {
-  const base = utente.ruolo === 'trainee' && percorso === '/tavola' ? '/' : percorso;
-  const q = [utente.ruolo !== 'trainee' && f ? `f=${f}` : '', extra].filter(Boolean).join('&');
-  return `#${base}${q ? `?${q}` : ''}`;
+export function useRuoloCorso(): string | null {
+  const { dati, utente } = useStato();
+  const corso = useCorso();
+  if (!dati || !utente) return null;
+  return ruoloNelCorso(dati, utente, corso?.id);
+}
+
+/** Collegamento a una pagina mantenendo corso, frequentatore e applicativo. */
+export function link(percorso: string, corso: Corso | undefined, f?: string | null, extra = '') {
+  // l'applicativo sta in `?app=` fuori dall'hash: resta da sé in tutti i collegamenti
+  const q = [corso ? `c=${corso.id}` : '', f ? `f=${f}` : '', extra].filter(Boolean).join('&');
+  return `#${percorso}${q ? `?${q}` : ''}`;
 }
