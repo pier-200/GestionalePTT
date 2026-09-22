@@ -12,3 +12,4 @@ docs/sorgenti/
 .impeccable/prova-supabase.mjs
 .impeccable/guarda.mjs
 .impeccable/debug-tm.mjs
+supabase/.temp/
