@@ -89,13 +89,16 @@ language sql stable security definer set search_path = public as $$
   select coalesce(public.ptt_ruolo() in ('admin', 'instructor'), false)
 $$;
 
--- traccia autore e istante di ogni modifica; la data non può essere futura
+-- traccia autore e istante di ogni modifica; la data non può essere futura.
+-- Senza utente collegato (SQL Editor, chiave di servizio, importazioni) si conservano i valori forniti.
 create or replace function public.ptt_traccia_registrazione() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
   if new.data > current_date then
     raise exception 'La data del task non può essere futura' using errcode = 'P0001';
   end if;
+  if new.tipo_esecuzione <> 'AC' then new.matricola := ''; end if;
+  if auth.uid() is null then return new; end if;
   if tg_op = 'INSERT' then
     new.creato_il := now();
     new.creato_da := auth.uid();
@@ -108,7 +111,6 @@ begin
   end if;
   new.modificato_il := now();
   new.modificato_da := auth.uid();
-  if new.tipo_esecuzione <> 'AC' then new.matricola := ''; end if;
   return new;
 end $$;
 
@@ -119,6 +121,7 @@ for each row execute function public.ptt_traccia_registrazione();
 create or replace function public.ptt_traccia_aggiornamento() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
+  if auth.uid() is null then return new; end if;
   new.updated_at := now();
   new.updated_by := auth.uid();
   return new;
@@ -134,7 +137,7 @@ for each row execute function public.ptt_traccia_aggiornamento();
 create or replace function public.ptt_traccia_istruttore() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  if tg_op = 'INSERT' then
+  if tg_op = 'INSERT' and auth.uid() is not null then
     new.created_at := now();
     new.created_by := auth.uid();
   end if;
@@ -248,6 +251,9 @@ grant select, update on public.profili to authenticated;
 grant select, insert, update, delete on public.anagrafiche, public.training_data, public.registrazioni to authenticated;
 grant select, insert, update on public.istruttori to authenticated;
 grant select on public.moduli, public.task_type, public.chapter, public.task to authenticated;
+-- chiave di servizio (Edge Function gestione-utenti e script di amministrazione): scavalca RLS ma servono i privilegi
+grant select, insert, update, delete on public.profili, public.anagrafiche, public.training_data, public.istruttori, public.registrazioni,
+  public.moduli, public.task_type, public.chapter, public.task to service_role;
 grant execute on function public.ptt_stato() to anon, authenticated;
 grant execute on function public.ptt_primo_admin(text, text), public.ptt_password_cambiata() to authenticated;
 

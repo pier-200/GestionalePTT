@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { Button } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { IconFileSpreadsheet, IconPrinter } from '@tabler/icons-react';
 import { CATALOGO } from '../../dominio/catalogo';
+import { messaggioErrore } from '../../dominio/errori';
 import { formatoPercentuale, type RigaReport, type Totale } from '../../dominio/compliance';
 import type { Utente } from '../../dominio/tipi';
 import { situazione } from '../../dominio/viste';
@@ -69,7 +72,25 @@ function Tabella({ colonna, righe, totali, separa, requisito }: { colonna: strin
 
 function ReportDi({ f }: { f: Utente }) {
   const { dati } = useStato();
+  const [pdf, setPdf] = useState(false);
   if (!dati) return null;
+
+  /** PDF sul modulo ufficiale (identico all'originale, con i soli valori inseriti). */
+  async function stampa() {
+    // la finestra si apre subito, dentro il clic, altrimenti il browser la blocca
+    const finestra = window.open('', '_blank');
+    finestra?.document.write('<p style="font-family:sans-serif">Preparazione del Compliance Report…</p>');
+    setPdf(true);
+    try {
+      const { apriCompliancePdf } = await import('../../stampaReport');
+      await apriCompliancePdf(dati!, f, finestra);
+    } catch (e) {
+      finestra?.close();
+      notifications.show({ color: 'rosso', title: 'PDF non creato', message: messaggioErrore(e) });
+    } finally {
+      setPdf(false);
+    }
+  }
   const s = situazione(dati, f);
   const a = dati.anagrafiche.find((x) => x.user_id === f.id);
   const t = dati.training.find((x) => x.user_id === f.id);
@@ -122,7 +143,7 @@ function ReportDi({ f }: { f: Utente }) {
         sotto={`Aggiornato automaticamente a ogni registrazione · ${s.nome}`}
         azioni={
           <>
-            <Button variant="default" leftSection={<IconPrinter size={17} />} onClick={() => window.print()}>
+            <Button variant="default" leftSection={<IconPrinter size={17} />} loading={pdf} onClick={() => void stampa()}>
               Stampa / PDF
             </Button>
             <Button variant="default" leftSection={<IconFileSpreadsheet size={17} />} onClick={() => void esportaFrequentatore(dati, f)}>

@@ -30,6 +30,8 @@ let smettiDiOsservare: (() => void) | null = null;
 let avvio: Promise<void> | null = null;
 
 async function creaBackend(): Promise<Backend> {
+  // ?demo nell'indirizzo apre sempre la modalità dimostrativa, qualunque sia l'archivio configurato
+  if (new URLSearchParams(window.location.search).has('demo')) return new DemoBackend();
   const config = await caricaConfig();
   if (config.tipo === 'github') return new (await import('../backend/github/GitHubBackend')).GitHubBackend(config);
   if (config.tipo === 'supabase') return new (await import('../backend/supabase')).SupabaseBackend(config);
@@ -84,7 +86,7 @@ export const useStato = create<Stato>((set, get) => ({
     const { backend, utente } = get();
     if (!backend || !utente) return;
     try {
-      const dati = await backend.caricaDati();
+      const dati = await backend.caricaDati(!silenzioso);
       const aggiornato = dati.utenti.find((u) => u.id === utente.id);
       if (!aggiornato?.attivo) return void get().esci();
       set({ dati, utente: aggiornato, aggiornatoAlle: new Date() });

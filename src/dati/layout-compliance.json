@@ -1,0 +1,906 @@
+{
+ "pagine": [
+  {
+   "indice": 0,
+   "larghezza": 595.3200073242188,
+   "altezza": 841.9199829101562,
+   "righe": [
+    {
+     "chiave": "tipo:LOC",
+     "base": 252.5,
+     "corpo": 9.960000038146973,
+     "grassetto": true,
+     "eseguiti": 362.9,
+     "percentuale": 497.4
+    },
+    {
+     "chiave": "tipo:FOT",
+     "base": 281.3299560546875,
+     "corpo": 9.960000038146973,
+     "grassetto": true,
+     "eseguiti": 362.9,
+     "percentuale": 497.4
+    },
+    {
+     "chiave": "tipo:SGH",
+     "base": 310.1300048828125,
+     "corpo": 9.960000038146973,
+     "grassetto": true,
+     "eseguiti": 362.9,
+     "percentuale": 497.4
+    },
+    {
+     "chiave": "tipo:R/I",
+     "base": 339.04998779296875,
+     "corpo": 9.960000038146973,
+     "grassetto": true,
+     "eseguiti": 362.9,
+     "percentuale": 497.4
+    },
+    {
+     "chiave": "tipo:MEL",
+     "base": 367.8499755859375,
+     "corpo": 9.960000038146973,
+     "grassetto": true,
+     "eseguiti": 362.9,
+     "percentuale": 497.4
+    },
+    {
+     "chiave": "tipo:TS",
+     "base": 396.7699890136719,
+     "corpo": 9.960000038146973,
+     "grassetto": true,
+     "eseguiti": 362.9,
+     "percentuale": 497.4
+    },
+    {
+     "chiave": "totale",
+     "base": 425.5699768066406,
+     "corpo": 9.960000038146973,
+     "grassetto": true,
+     "eseguiti": 362.9,
+     "percentuale": 497.4
+    }
+   ],
+   "intestazione": {
+    "cella": [
+     17.639999389648438,
+     29.27593994140625,
+     138.14000701904297,
+     107.77996826171875
+    ],
+    "segnaposto": [
+     [
+      65.63999938964844,
+      43.30620574951172,
+      92.91287994384766,
+      54.41160583496094
+     ],
+     [
+      21.360000610351562,
+      68.14617156982422,
+      137.21473693847656,
+      79.25157165527344
+     ],
+     [
+      37.31999969482422,
+      81.36620330810547,
+      118.29479217529297,
+      92.47160339355469
+     ]
+    ],
+    "campi": {
+     "grade": {
+      "x": 443.8299865722656,
+      "base": 48.719970703125,
+      "fine": 574.5488891601562
+     },
+     "nome": {
+      "x": 443.8299865722656,
+      "base": 66.239990234375,
+      "fine": 574.5488891601562
+     },
+     "cognome": {
+      "x": 443.8299865722656,
+      "base": 83.760009765625,
+      "fine": 574.5488891601562
+     },
+     "maml": {
+      "x": 443.8299865722656,
+      "base": 101.29998779296875,
+      "fine": 574.5488891601562
+     }
+    }
+   }
+  },
+  {
+   "indice": 1,
+   "larghezza": 595.3200073242188,
+   "altezza": 841.9199829101562,
+   "righe": [
+    {
+     "chiave": "chapter:05",
+     "base": 203.65997314453125,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:06",
+     "base": 221.65997314453125,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:07",
+     "base": 239.65997314453125,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:08",
+     "base": 257.65997314453125,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:09",
+     "base": 275.69000244140625,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:10",
+     "base": 293.69000244140625,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:11",
+     "base": 311.69000244140625,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:12",
+     "base": 329.69000244140625,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:14",
+     "base": 347.6899719238281,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:20",
+     "base": 365.6899719238281,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:18",
+     "base": 385.0099792480469,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:62",
+     "base": 403.0099792480469,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:62A",
+     "base": 421.0099792480469,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:63",
+     "base": 439.02996826171875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:63A",
+     "base": 457.02996826171875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:67",
+     "base": 475.02996826171875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:53",
+     "base": 494.22998046875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:54",
+     "base": 512.22998046875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:56",
+     "base": 530.22998046875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:52",
+     "base": 548.22998046875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:21",
+     "base": 567.5499877929688,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:21A",
+     "base": 585.5499877929688,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:22",
+     "base": 603.5499877929688,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:24",
+     "base": 621.5799560546875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:25",
+     "base": 639.5799560546875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:25A",
+     "base": 657.5799560546875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:26",
+     "base": 675.5799560546875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:27",
+     "base": 693.5799560546875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:28",
+     "base": 711.5799560546875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:28A",
+     "base": 729.5799560546875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:29",
+     "base": 747.5759887695312,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:29A",
+     "base": 765.5759887695312,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:30",
+     "base": 783.5999755859375,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    }
+   ],
+   "intestazione": {
+    "cella": [
+     17.639999389648438,
+     29.27593994140625,
+     138.14000701904297,
+     107.77996826171875
+    ],
+    "segnaposto": [
+     [
+      65.63999938964844,
+      43.30620574951172,
+      92.91287994384766,
+      54.41160583496094
+     ],
+     [
+      21.360000610351562,
+      68.14617156982422,
+      137.21473693847656,
+      79.25157165527344
+     ],
+     [
+      37.31999969482422,
+      81.36620330810547,
+      118.29479217529297,
+      92.47160339355469
+     ]
+    ],
+    "campi": {
+     "grade": {
+      "x": 443.8299865722656,
+      "base": 48.719970703125,
+      "fine": 574.5488891601562
+     },
+     "nome": {
+      "x": 443.8299865722656,
+      "base": 66.239990234375,
+      "fine": 574.5488891601562
+     },
+     "cognome": {
+      "x": 443.8299865722656,
+      "base": 83.760009765625,
+      "fine": 574.5488891601562
+     },
+     "maml": {
+      "x": 443.8299865722656,
+      "base": 101.29998779296875,
+      "fine": 574.5488891601562
+     }
+    }
+   }
+  },
+  {
+   "indice": 2,
+   "larghezza": 595.3200073242188,
+   "altezza": 841.9199829101562,
+   "righe": [
+    {
+     "chiave": "chapter:31",
+     "base": 95.29998779296875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:31A",
+     "base": 113.29998779296875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:32",
+     "base": 131.29998779296875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:32A",
+     "base": 149.29998779296875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:33",
+     "base": 167.29998779296875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:34",
+     "base": 185.29998779296875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:36",
+     "base": 203.29998779296875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:43",
+     "base": 221.29998779296875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:44",
+     "base": 239.29998779296875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:46",
+     "base": 257.29998779296875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:50",
+     "base": 275.3299560546875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:70",
+     "base": 294.52996826171875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:70A",
+     "base": 312.52996826171875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:70B",
+     "base": 330.52996826171875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:71",
+     "base": 348.52996826171875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:72",
+     "base": 366.52996826171875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:73",
+     "base": 384.52996826171875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:73A",
+     "base": 402.52996826171875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:74",
+     "base": 420.52996826171875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:75",
+     "base": 438.54998779296875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:76",
+     "base": 456.54998779296875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:77",
+     "base": 474.54998779296875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:78",
+     "base": 492.54998779296875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:79",
+     "base": 510.54998779296875,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:80",
+     "base": 528.5499877929688,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:49",
+     "base": 546.5499877929688,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:93",
+     "base": 565.75,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:94",
+     "base": 583.75,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:95",
+     "base": 601.75,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:97",
+     "base": 619.7799682617188,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:99",
+     "base": 637.7799682617188,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:AVES1",
+     "base": 657.0999755859375,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:AVES2A",
+     "base": 676.2999877929688,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:AVES2B",
+     "base": 694.2999877929688,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:AVES2C",
+     "base": 712.2999877929688,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:AVES2D",
+     "base": 728.1400146484375,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "chapter:AVES3",
+     "base": 741.219970703125,
+     "corpo": 9.960000038146973,
+     "grassetto": false,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "totaleP66",
+     "base": 763.2959594726562,
+     "corpo": 9.960000038146973,
+     "grassetto": true,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    },
+    {
+     "chiave": "totale",
+     "base": 785.6400146484375,
+     "corpo": 9.960000038146973,
+     "grassetto": true,
+     "eseguiti": 304.79999999999995,
+     "percentuale": 440.9
+    }
+   ]
+  },
+  {
+   "indice": 3,
+   "larghezza": 841.9199829101562,
+   "altezza": 595.3200073242188,
+   "righe": [
+    {
+     "chiave": "modulo:1",
+     "base": 206.33001708984375,
+     "corpo": 11.039999961853027,
+     "grassetto": true,
+     "eseguiti": 474.9,
+     "percentuale": 630.8
+    },
+    {
+     "chiave": "modulo:2",
+     "base": 227.21002197265625,
+     "corpo": 11.039999961853027,
+     "grassetto": true,
+     "eseguiti": 474.9,
+     "percentuale": 630.8
+    },
+    {
+     "chiave": "modulo:3",
+     "base": 248.08999633789062,
+     "corpo": 11.039999961853027,
+     "grassetto": true,
+     "eseguiti": 474.9,
+     "percentuale": 630.8
+    },
+    {
+     "chiave": "modulo:4",
+     "base": 268.9700012207031,
+     "corpo": 11.039999961853027,
+     "grassetto": true,
+     "eseguiti": 474.9,
+     "percentuale": 630.8
+    },
+    {
+     "chiave": "modulo:5",
+     "base": 289.7300109863281,
+     "corpo": 11.039999961853027,
+     "grassetto": true,
+     "eseguiti": 474.9,
+     "percentuale": 630.8
+    },
+    {
+     "chiave": "modulo:6",
+     "base": 310.6100158691406,
+     "corpo": 11.039999961853027,
+     "grassetto": true,
+     "eseguiti": 474.9,
+     "percentuale": 630.8
+    },
+    {
+     "chiave": "modulo:7",
+     "base": 331.4900207519531,
+     "corpo": 11.039999961853027,
+     "grassetto": true,
+     "eseguiti": 474.9,
+     "percentuale": 630.8
+    },
+    {
+     "chiave": "modulo:8",
+     "base": 352.3900146484375,
+     "corpo": 11.039999961853027,
+     "grassetto": true,
+     "eseguiti": 474.9,
+     "percentuale": 630.8
+    },
+    {
+     "chiave": "totaleP66",
+     "base": 376.030029296875,
+     "corpo": 11.039999961853027,
+     "grassetto": true,
+     "eseguiti": 474.9,
+     "percentuale": 630.8
+    },
+    {
+     "chiave": "totale",
+     "base": 402.54998779296875,
+     "corpo": 11.039999961853027,
+     "grassetto": true,
+     "eseguiti": 474.9,
+     "percentuale": 630.8
+    }
+   ],
+   "intestazione": {
+    "cella": [
+     152.3000030517578,
+     22.19598388671875,
+     272.8099822998047,
+     100.70001220703125
+    ],
+    "segnaposto": [
+     [
+      200.3000030517578,
+      36.10619354248047,
+      227.5488739013672,
+      47.21159362792969
+     ],
+     [
+      156.02000427246094,
+      60.96617889404297,
+      271.87469482421875,
+      72.07157897949219
+     ],
+     [
+      171.97999572753906,
+      74.28618621826172,
+      252.95477294921875,
+      85.39158630371094
+     ]
+    ],
+    "campi": {
+     "grade": {
+      "x": 578.469970703125,
+      "base": 41.6400146484375,
+      "fine": 709.1888427734375
+     },
+     "nome": {
+      "x": 578.469970703125,
+      "base": 59.1600341796875,
+      "fine": 709.1888427734375
+     },
+     "cognome": {
+      "x": 578.469970703125,
+      "base": 76.70001220703125,
+      "fine": 709.1888427734375
+     },
+     "maml": {
+      "x": 578.469970703125,
+      "base": 94.22000122070312,
+      "fine": 709.1888427734375
+     }
+    }
+   },
+   "firma": {
+    "place": {
+     "centro": 249.48956298828125,
+     "base": 448.27880859375,
+     "corpo": 10
+    },
+    "date": {
+     "centro": 433.8345489501953,
+     "base": 448.27880859375,
+     "corpo": 10
+    }
+   }
+  }
+ ]
+}

@@ -1,8 +1,21 @@
 # Pubblicazione e archivio condiviso
 
-L'app è già online su **https://pier-200.github.io/GestionalePTT/** in modalità dimostrativa: ognuno vede la situazione
-esempio nel proprio browser. Per il lavoro reale, con tutti sugli stessi dati, serve un archivio centrale: **Supabase**
-(consigliato) oppure un **repository GitHub privato**. Si sceglie modificando `public/config.json` e ripubblicando.
+L'app è online su **https://pier-200.github.io/GestionalePTT/** con archivio **Supabase** già configurato
+(progetto `dyragieggyvgayteotlm`, regione eu-west-1): tutti lavorano sugli stessi dati. La modalità dimostrativa resta
+disponibile su `https://pier-200.github.io/GestionalePTT/?demo`. In alternativa a Supabase si può usare un
+**repository GitHub privato** (sezione B). L'archivio si sceglie in `public/config.json` e si ripubblica.
+
+## Stato dell'installazione Supabase (22/09/2026)
+
+- Catalogo, schema, sicurezza (RLS) e tempo reale installati (`database/catalogo.sql`, `database/schema.sql`).
+- Edge Function `gestione-utenti` pubblicata con Verify JWT disattivato; registrazione libera disattivata.
+- Account **training.manager** (Training Manager) con password provvisoria, da cambiare al primo accesso.
+- Situazione esempio caricata con account propri. Credenziali nel file locale
+  `Desktop\Gestione Practical Type Training\Credenziali PTT (riservato).txt` (mai nel repository).
+- Prima dell'uso reale: SQL Editor → eseguire `database/elimina_esempio.sql` (toglie account e dati dell'esempio).
+
+Per ripetere l'installazione su un altro progetto: passi 2-4 della sezione A, poi
+`SUPABASE_URL=… SUPABASE_SERVICE_KEY=… node scripts/semina-supabase.mjs <username TM> "<Grado Nome Cognome>" [--esempio] --credenziali <file>`.
 
 > Prima di caricare dati reali di personale militare su un servizio esterno, verificare con l'ente che sia ammesso
 > (vedi §7 del documento di progetto).
@@ -63,10 +76,14 @@ con password provvisoria, e inserisce i Practical Type Training Data per l'inter
 
 ### Manutenzione
 
-- I progetti gratuiti si sospendono dopo circa una settimana senza accessi: durante il corso l'uso quotidiano li tiene attivi;
-  a fine corso esportare l'Excel complessivo.
+- Piano gratuito: 500 MB di database, 5 GB di traffico al mese, 50.000 utenti attivi, 200 connessioni in tempo reale.
+  Un corso di 20 frequentatori e 20 istruttori ne usa una piccola frazione (pochi MB di dati, qualche centinaio di MB di traffico al mese):
+  l'app rilegge tutto solo all'accesso e poi riceve solo le registrazioni nuove.
+- I progetti gratuiti si sospendono dopo 7 giorni senza alcun accesso: durante il corso l'uso quotidiano li tiene attivi.
+  Se succede (es. tra un corso e l'altro), dal pannello Supabase → progetto → **Restore**: i dati restano.
+- Il piano gratuito non ha backup automatici: a fine corso (e periodicamente) esportare l'**Excel complessivo**.
 - Password del Training Manager dimenticata: in **SQL Editor**
-  `update auth.users set encrypted_password = extensions.crypt('NuovaPassword2026', extensions.gen_salt('bf')) where email = 'tm.rossi@ptt.local';`
+  `update auth.users set encrypted_password = extensions.crypt('NuovaPassword2026', extensions.gen_salt('bf')) where email = 'training.manager@ptt.local';`
 
 ---
 

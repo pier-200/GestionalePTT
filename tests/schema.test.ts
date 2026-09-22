@@ -8,6 +8,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 const STUB = `
 create role anon nologin noinherit;
 create role authenticated nologin noinherit;
+create role service_role nologin noinherit bypassrls;
 create schema auth;
 create table auth.users (id uuid primary key, email text);
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;

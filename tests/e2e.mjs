@@ -1,9 +1,9 @@
-// Prova end-to-end nel browser (Microsoft Edge) sulla modalità dimostrativa.
+// Prova end-to-end nel browser (Microsoft Edge) sulla modalità dimostrativa (?demo).
 //   npm run build && npx vite preview --port 4174   poi   npm run e2e
 import { chromium } from '@playwright/test';
 import assert from 'node:assert/strict';
 
-const BASE = process.env.PTT_URL ?? 'http://localhost:4174/';
+const BASE = process.env.PTT_URL ?? 'http://localhost:4174/?demo';
 const browser = await chromium.launch({ channel: 'msedge' });
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
 const page = await ctx.newPage();

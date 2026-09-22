@@ -28,7 +28,8 @@ export interface Backend {
   accedi(username: string, password: string, ricordami: boolean): Promise<Sessione>;
   esci(): Promise<void>;
   cambiaPassword(attuale: string, nuova: string): Promise<void>;
-  caricaDati(): Promise<Dati>;
+  /** Dati visibili all'utente; completo = rilegge tutto (pulsante Aggiorna). */
+  caricaDati(completo?: boolean): Promise<Dati>;
   /** Esegue il comando e restituisce i dati aggiornati. */
   esegui(comando: Comando): Promise<Dati>;
   /** Richiama `avvisa` quando altri utenti modificano i dati; restituisce la funzione per smettere. */

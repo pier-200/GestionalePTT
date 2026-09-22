@@ -9,3 +9,6 @@ playwright-report
 docs/sorgenti/
 .impeccable/cattura.mjs
 .impeccable/stampa.mjs
+.impeccable/prova-supabase.mjs
+.impeccable/guarda.mjs
+.impeccable/debug-tm.mjs
