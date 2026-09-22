@@ -67,7 +67,15 @@ export function Teoria() {
               key={m.numero}
               nome={`Modulo ${m.numero}`}
               sotto={oreDaMinuti(m.minuti)}
-              riga={{ codice: String(m.numero), titolo: m.titolo, previsti: m.minuti, eseguiti: m.pianificati, percentuale: (m.pianificati / m.minuti) * 100, conforme: null, mancano: 0 }}
+              riga={{
+                codice: String(m.numero),
+                titolo: m.titolo,
+                previsti: Math.round(m.minuti / 60),
+                eseguiti: Math.round(m.pianificati / 60),
+                percentuale: (m.pianificati / m.minuti) * 100,
+                conforme: null,
+                mancano: 0,
+              }}
             />
           ))}
           <ScalaQuote />
