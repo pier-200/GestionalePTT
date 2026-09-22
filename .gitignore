@@ -8,3 +8,4 @@ playwright-report
 # documenti ufficiali: restano in locale (il catalogo generato è in src/dati e database)
 docs/sorgenti/
 .impeccable/cattura.mjs
+.impeccable/stampa.mjs

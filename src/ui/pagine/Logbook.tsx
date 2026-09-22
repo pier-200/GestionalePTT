@@ -66,7 +66,9 @@ function LogbookDi({ f }: { f: Utente }) {
         <button type="button" className="task-riga" aria-expanded={eAperto} onClick={() => setAperto(eAperto ? null : t.id)}>
           <span className="task-id">{t.id}</span>
           <span className="task-tipo">{t.tipo}</span>
-          <span className="task-descrizione">{t.descrizione}</span>
+          <span className="task-descrizione">
+            <span>{t.descrizione}</span>
+          </span>
           <span className="task-conteggio" aria-label={regs.length ? `${regs.length} registrazioni` : 'non eseguito'}>
             {regs.length ? `×${regs.length}` : ''}
           </span>

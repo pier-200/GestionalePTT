@@ -755,8 +755,6 @@ a.quota:hover .quota-nome {
 .task-riga {
   all: unset;
   box-sizing: border-box;
-  position: relative;
-  isolation: isolate;
   width: 100%;
   display: grid;
   grid-template-columns: 38px 40px minmax(0, 1fr) auto;
@@ -765,33 +763,43 @@ a.quota:hover .quota-nome {
   padding: 11px 6px;
   cursor: pointer;
 }
-/* tratto di evidenziatore del verificatore: banda interna con estremità irregolari */
-.task-riga::before {
-  content: '';
-  position: absolute;
-  inset: 6px 4px 5px 2px;
-  z-index: -1;
-  background: var(--evidenzia);
-  border-radius: 3px 9px 4px 11px / 9px 4px 10px 3px;
-  transform: scaleX(0) rotate(-0.25deg);
-  transform-origin: left center;
+/* tratto di evidenziatore del verificatore: una passata per ogni riga di testo della descrizione */
+.task-descrizione > span {
+  --lunghezza: 0%;
+  padding: 1px 5px 1px 3px;
+  margin-left: -3px;
+  background-image: linear-gradient(transparent 16%, var(--evidenzia) 16%, var(--evidenzia) 86%, transparent 86%);
+  background-repeat: no-repeat;
+  background-size: var(--lunghezza) 100%;
+  border-radius: 2px 7px 3px 8px / 6px 3px 7px 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
-.task.eseguito .task-riga::before {
-  transform: scaleX(1) rotate(-0.25deg);
+.task.eseguito .task-descrizione > span {
+  --lunghezza: 100%;
 }
-.task.appena .task-riga::before {
-  animation: tratto 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+/* piccole variazioni da riga a riga, come una mano vera */
+.task:nth-child(3n + 1) .task-descrizione > span {
+  background-image: linear-gradient(transparent 20%, var(--evidenzia) 20%, var(--evidenzia) 88%, transparent 88%);
+  border-radius: 6px 2px 8px 3px / 3px 7px 2px 6px;
+}
+.task:nth-child(3n + 2) .task-descrizione > span {
+  background-image: linear-gradient(transparent 13%, var(--evidenzia) 13%, var(--evidenzia) 82%, transparent 82%);
+  padding-right: 8px;
+}
+.task.appena .task-descrizione > span {
+  animation: tratto 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 @keyframes tratto {
   from {
-    transform: scaleX(0) rotate(-0.25deg);
+    background-size: 0% 100%;
   }
   to {
-    transform: scaleX(1) rotate(-0.25deg);
+    background-size: 100% 100%;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .task.appena .task-riga::before {
+  .task.appena .task-descrizione > span {
     animation: none;
   }
 }

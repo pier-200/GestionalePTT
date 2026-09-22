@@ -32,6 +32,3 @@ export const CATALOGO = dati as {
 export const TASK: readonly Task[] = CATALOGO.task;
 export const TASK_PER_ID = new Map(TASK.map((t) => [t.id, t]));
 export const CHAPTER_PER_CODICE = new Map(CATALOGO.chapter.map((c) => [c.codice, c]));
-
-/** "Chapter 05", "Chapter AVES 2a". */
-export const nomeChapter = (codice: string) => `Ch ${codice}`;

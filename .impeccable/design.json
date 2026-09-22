@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-22T12:00:00Z",
+  "title": "Design System: Gestionale PTT",
+  "extensions": {
+    "colorMeta": {
+      "inchiostro": { "role": "primary", "displayName": "Inchiostro di china", "canonical": "#16202b", "tonalRamp": ["#0c131a", "#16202b", "#26313c", "#36414d", "#4a5561", "#667586", "#b3bcc6", "#eef1f4"] },
+      "inchiostro-2": { "role": "neutral", "displayName": "Inchiostro diluito", "canonical": "#46515d", "tonalRamp": ["#0c131a", "#26313c", "#36414d", "#46515d", "#667586", "#8a97a5", "#b3bcc6", "#eef1f4"] },
+      "inchiostro-3": { "role": "neutral", "displayName": "Inchiostro tenue", "canonical": "#66717d", "tonalRamp": ["#1a2027", "#2f3740", "#46515d", "#66717d", "#8a939d", "#adb4bc", "#d0d5da", "#eef0f2"] },
+      "evidenzia": { "role": "secondary", "displayName": "Evidenziatore del verificatore", "canonical": "#f7e36a", "tonalRamp": ["#473c04", "#77650b", "#a88f14", "#d9ba1f", "#f2d22e", "#f7e36a", "#fbf1b3", "#fefbe6"] },
+      "evidenzia-tenue": { "role": "secondary", "displayName": "Evidenziatore tenue", "canonical": "#fbf1b3", "tonalRamp": ["#473c04", "#77650b", "#a88f14", "#d9ba1f", "#f4d84a", "#f9ea91", "#fbf1b3", "#fefbe6"] },
+      "giallo": { "role": "secondary", "displayName": "Giallo marchio", "canonical": "#f2d22e", "tonalRamp": ["#473c04", "#77650b", "#a88f14", "#d9ba1f", "#f2d22e", "#f6e063", "#fcf3bd", "#fefbe6"] },
+      "rosso": { "role": "tertiary", "displayName": "Matita rossa", "canonical": "#c22f25", "tonalRamp": ["#621612", "#821e18", "#a2261e", "#c22f25", "#d2352b", "#e6746c", "#f8d0cd", "#fdeceb"] },
+      "rosso-linea": { "role": "tertiary", "displayName": "Tratto rosso", "canonical": "#d2352b", "tonalRamp": ["#621612", "#821e18", "#a2261e", "#c22f25", "#d2352b", "#dc4d43", "#f0a39d", "#fdeceb"] },
+      "carta": { "role": "neutral", "displayName": "Carta", "canonical": "#f6f7f4", "tonalRamp": ["#262824", "#43463f", "#62665c", "#838879", "#a6ab9d", "#c9cdc1", "#eceee9", "#f6f7f4"] },
+      "carta-2": { "role": "neutral", "displayName": "Carta ombreggiata", "canonical": "#eceee9", "tonalRamp": ["#262824", "#43463f", "#62665c", "#838879", "#a6ab9d", "#c9cdc1", "#eceee9", "#f6f7f4"] },
+      "foglio": { "role": "neutral", "displayName": "Foglio", "canonical": "#fbfcfa", "tonalRamp": ["#262824", "#43463f", "#62665c", "#838879", "#a6ab9d", "#d3d6cf", "#eceee9", "#fbfcfa"] },
+      "filetto": { "role": "neutral", "displayName": "Filetto", "canonical": "#8e99a4", "tonalRamp": ["#1d2227", "#353d45", "#505a65", "#6d7884", "#8e99a4", "#b1b9c1", "#d3d8dc", "#f0f2f4"] },
+      "filetto-chiaro": { "role": "neutral", "displayName": "Filetto chiaro", "canonical": "#d3d8dc", "tonalRamp": ["#1d2227", "#353d45", "#505a65", "#6d7884", "#8e99a4", "#b1b9c1", "#d3d8dc", "#f0f2f4"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Cifre monumentali", "purpose": "Percentuale complessiva nel cartiglio; 5rem da 700px; una per schermata." },
+      "headline": { "displayName": "Titolo di pagina", "purpose": "Titolo della tavola, text-wrap balance." },
+      "title": { "displayName": "Titolo di sezione", "purpose": "Sopra il filetto d'inchiostro di ogni sezione; titoli drawer." },
+      "body": { "displayName": "Testo", "purpose": "Prosa e descrizioni; testo lungo a 1.6 e 76ch." },
+      "body-sm": { "displayName": "Testo riga", "purpose": "Descrizioni dei task e celle delle tabelle." },
+      "cifre": { "displayName": "Cifre e codici", "purpose": "Valori di quota, ID e tipo task, contatori, palloncini, chip." },
+      "label": { "displayName": "Etichetta", "purpose": "Intestazioni di colonna, campi del cartiglio, gruppi dell'indice; maiuscolo." }
+    },
+    "shadows": [
+      { "name": "focus-input", "value": "0 0 0 1px var(--inchiostro)", "purpose": "Secondo filetto sugli input a fuoco. Nessun'altra ombra nel sistema." }
+    ],
+    "motion": [
+      { "name": "tratto-evidenziatore", "value": "480ms cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Passata gialla sulla descrizione del task appena salvato (background-size da 0 a 100%); disattivata con prefers-reduced-motion." },
+      { "name": "arretramento", "value": "opacity 180ms ease-out", "purpose": "Le righe non aperte della distinta scendono a 0.45." },
+      { "name": "apertura-parte", "value": "transform 180ms ease-out", "purpose": "Rotazione della freccia delle parti espandibili." }
+    ],
+    "breakpoints": [
+      { "name": "stretto", "value": "600px" },
+      { "name": "cifre-grandi", "value": "700px" },
+      { "name": "largo", "value": "760px" },
+      { "name": "due-colonne", "value": "900px" },
+      { "name": "desktop", "value": "992px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Pulsante primario",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Azione principale della pagina (Registra task); fissa sopra la navigazione su mobile.",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"/></svg>Registra task</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 50px; padding: 0 28px; background: var(--inchiostro, #16202b); color: var(--foglio, #fbfcfa); border: 0; border-radius: 0; font-family: Barlow, sans-serif; font-weight: 600; font-size: 1.125rem; cursor: pointer; } .ds-btn-primary:hover { background: #26313c; } .ds-btn-primary:focus-visible { outline: 2px solid var(--inchiostro, #16202b); outline-offset: 2px; }"
+    },
+    {
+      "name": "Pulsante secondario",
+      "kind": "button",
+      "refersTo": "button-default",
+      "description": "Azioni secondarie (esporta, stampa, annulla).",
+      "html": "<button class=\"ds-btn-default\">Esporta Excel</button>",
+      "css": ".ds-btn-default { height: 36px; padding: 0 16px; background: var(--foglio, #fbfcfa); color: var(--inchiostro, #16202b); border: 1px solid var(--inchiostro, #16202b); border-radius: 0; font-family: Barlow, sans-serif; font-weight: 600; font-size: 0.9375rem; cursor: pointer; } .ds-btn-default:hover { background: var(--carta-2, #eceee9); } .ds-btn-default:focus-visible { outline: 2px solid var(--inchiostro, #16202b); outline-offset: 2px; }"
+    },
+    {
+      "name": "Campo di testo",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Input Mantine nel linguaggio della tavola.",
+      "html": "<label class=\"ds-campo\"><span>Matricola A/C</span><input placeholder=\"MM81781\"></label>",
+      "css": ".ds-campo { display: grid; gap: 4px; font-family: Barlow, sans-serif; color: var(--inchiostro, #16202b); } .ds-campo span { font-weight: 600; font-size: 0.9375rem; } .ds-campo input { height: 36px; padding: 0 12px; background: var(--foglio, #fbfcfa); border: 1px solid var(--filetto, #8e99a4); border-radius: 0; font: inherit; color: inherit; } .ds-campo input:focus { outline: none; border-color: var(--inchiostro, #16202b); box-shadow: 0 0 0 1px var(--inchiostro, #16202b); }"
+    },
+    {
+      "name": "Chip filtro",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Filtri del logbook; premuto = pieno inchiostro.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip\" aria-pressed=\"true\">Tutti</button><button class=\"ds-chip\" aria-pressed=\"false\">Eseguiti</button><button class=\"ds-chip\" aria-pressed=\"false\">LOC</button></div>",
+      "css": ".ds-chips { display: flex; gap: 6px; } .ds-chip { height: 34px; padding: 0 12px; border: 1px solid var(--filetto, #8e99a4); background: var(--foglio, #fbfcfa); color: var(--inchiostro, #16202b); border-radius: 0; font-family: 'Barlow Condensed', Barlow, sans-serif; font-weight: 600; font-size: 0.875rem; letter-spacing: 0.02em; cursor: pointer; } .ds-chip[aria-pressed='true'] { background: var(--inchiostro, #16202b); border-color: var(--inchiostro, #16202b); color: var(--foglio, #fbfcfa); } .ds-chip:focus-visible { outline: 2px solid var(--inchiostro, #16202b); outline-offset: 2px; }"
+    },
+    {
+      "name": "Navigazione inferiore",
+      "kind": "nav",
+      "refersTo": "nav-basso",
+      "description": "Barra mobile a 4 voci; corrente con barra d'inchiostro sul filetto superiore.",
+      "html": "<nav class=\"ds-navbasso\"><a href=\"#\" aria-current=\"page\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><rect x=\"4\" y=\"4\" width=\"6\" height=\"6\"/><rect x=\"14\" y=\"4\" width=\"6\" height=\"6\"/><rect x=\"4\" y=\"14\" width=\"6\" height=\"6\"/><rect x=\"14\" y=\"14\" width=\"6\" height=\"6\"/></svg>Tavola</a><a href=\"#\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><rect x=\"5\" y=\"3\" width=\"14\" height=\"18\"/><path d=\"M9 8h6M9 12h6\"/></svg>Logbook</a><a href=\"#\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><path d=\"M6 3h9l3 3v15H6z\"/><path d=\"M9 16v-3M12 16v-6M15 16v-4\"/></svg>Report</a><a href=\"#\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><circle cx=\"5\" cy=\"12\" r=\"1.5\"/><circle cx=\"12\" cy=\"12\" r=\"1.5\"/><circle cx=\"19\" cy=\"12\" r=\"1.5\"/></svg>Altro</a></nav>",
+      "css": ".ds-navbasso { display: grid; grid-template-columns: repeat(4, 1fr); height: 64px; background: var(--foglio, #fbfcfa); border-top: 1px solid var(--inchiostro, #16202b); } .ds-navbasso a { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none; font-family: 'Barlow Condensed', Barlow, sans-serif; font-weight: 600; font-size: 0.8125rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--inchiostro-2, #46515d); } .ds-navbasso a:hover { color: var(--inchiostro, #16202b); } .ds-navbasso a[aria-current='page'] { color: var(--inchiostro, #16202b); } .ds-navbasso a[aria-current='page']::before { content: ''; position: absolute; top: -1px; left: 22%; right: 22%; height: 4px; background: var(--inchiostro, #16202b); } .ds-navbasso a:focus-visible { outline: 2px solid var(--inchiostro, #16202b); outline-offset: -6px; }"
+    },
+    {
+      "name": "Timbro di esito",
+      "kind": "custom",
+      "refersTo": "timbro-conforme",
+      "description": "Timbro rettangolare CONFORME / NON CONFORME, ruotato -2deg.",
+      "html": "<span class=\"ds-timbro ds-si\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.2 14.2-4-4 1.4-1.4 2.6 2.6 5.6-5.6 1.4 1.4z\"/></svg>Conforme</span> <span class=\"ds-timbro ds-no\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12 2 1 21h22zm-1 7h2v6h-2zm0 8h2v2h-2z\"/></svg>Non conforme</span>",
+      "css": ".ds-timbro { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 3px; border: 2px solid currentColor; font-family: 'Barlow Condensed', Barlow, sans-serif; font-weight: 700; font-size: 1rem; letter-spacing: 0.1em; text-transform: uppercase; line-height: 1.1; transform: rotate(-2deg); white-space: nowrap; } .ds-timbro.ds-si { color: var(--inchiostro, #16202b); background: var(--evidenzia, #f7e36a); } .ds-timbro.ds-no { color: var(--rosso, #c22f25); background: var(--foglio, #fbfcfa); }"
+    },
+    {
+      "name": "Linea di quota",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Avanzamento con terminali, riempimento giallo, datum al 50% e tratto rosso di ciò che manca.",
+      "html": "<div class=\"ds-quota\"><span class=\"ds-q-nome\">Modulo 4<small>P-66</small></span><span class=\"ds-q-linea\"><span class=\"ds-q-fatto\" style=\"width:36%\"></span><span class=\"ds-q-manca\" style=\"left:36%;width:14%\"></span><span class=\"ds-q-datum\"></span></span><span class=\"ds-q-valore\">36%<small style=\"color:var(--rosso,#c22f25)\">28/77 · −11</small></span></div>",
+      "css": ".ds-quota { display: grid; grid-template-columns: 72px minmax(0,1fr) 74px; align-items: center; gap: 10px; color: var(--inchiostro, #16202b); font-family: 'Barlow Condensed', Barlow, sans-serif; font-weight: 600; font-size: 0.9375rem; line-height: 1.1; } .ds-quota small { display: block; font-weight: 500; font-size: 0.75rem; color: var(--inchiostro-2, #46515d); } .ds-q-valore { text-align: right; } .ds-q-linea { position: relative; height: 22px; } .ds-q-linea::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid var(--inchiostro, #16202b); } .ds-q-linea::after { content: ''; position: absolute; inset: 5px 0; border-left: 1px solid var(--inchiostro, #16202b); border-right: 1px solid var(--inchiostro, #16202b); } .ds-q-fatto { position: absolute; left: 0; top: 4px; bottom: 4px; background: var(--evidenzia, #f7e36a); border-right: 2px solid var(--inchiostro, #16202b); } .ds-q-manca { position: absolute; top: 50%; border-top: 2px dashed var(--rosso-linea, #d2352b); transform: translateY(-1px); } .ds-q-datum { position: absolute; top: -3px; bottom: -3px; left: 50%; border-left: 1px dashed var(--inchiostro, #16202b); }"
+    },
+    {
+      "name": "Palloncini chapter",
+      "kind": "custom",
+      "refersTo": "palloncino",
+      "description": "Codici chapter tondi: giallo se coperti, rosso tratteggiato se scoperti.",
+      "html": "<div class=\"ds-palloncini\"><a href=\"#\" class=\"ds-pal ds-fatto\">29</a><a href=\"#\" class=\"ds-pal\">30</a><a href=\"#\" class=\"ds-pal ds-manca\">31A</a><a href=\"#\" class=\"ds-pal ds-manca\">AVES 2b</a></div>",
+      "css": ".ds-palloncini { display: flex; flex-wrap: wrap; gap: 6px; } .ds-pal { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 7px; box-sizing: border-box; border: 1px solid var(--inchiostro, #16202b); border-radius: 999px; background: var(--foglio, #fbfcfa); color: var(--inchiostro, #16202b); text-decoration: none; font-family: 'Barlow Condensed', Barlow, sans-serif; font-weight: 600; font-size: 0.875rem; line-height: 1; white-space: nowrap; } .ds-pal.ds-fatto { background: var(--evidenzia, #f7e36a); } .ds-pal.ds-manca { border: 1.5px dashed var(--rosso-linea, #d2352b); color: var(--rosso, #c22f25); } .ds-pal:hover { background: var(--carta-2, #eceee9); } .ds-pal:focus-visible { outline: 2px solid var(--inchiostro, #16202b); outline-offset: 2px; }"
+    },
+    {
+      "name": "Cartiglio",
+      "kind": "card",
+      "refersTo": "cartiglio",
+      "description": "Title block della tavola: celle rigate con etichetta e valore, numero monumentale.",
+      "html": "<div class=\"ds-cartiglio\"><div class=\"ds-c-nome\"><span class=\"ds-etichetta\">Frequentatore</span><div class=\"ds-valore\">Serg. Magg. Giulia Romano</div></div><div class=\"ds-c-num\"><span class=\"ds-etichetta\">Task eseguiti</span><div class=\"ds-monumentale\">62,1<small>%</small></div></div><div><span class=\"ds-etichetta\">MAML</span><div class=\"ds-valore2\">MAML-IT-0417</div></div><div><span class=\"ds-etichetta\">A/C type</span><div class=\"ds-valore2\">CH-47F</div></div></div>",
+      "css": ".ds-cartiglio { display: grid; grid-template-columns: 1fr 1fr; border: 1.5px solid var(--inchiostro, #16202b); background: var(--foglio, #fbfcfa); color: var(--inchiostro, #16202b); font-family: Barlow, sans-serif; } .ds-cartiglio > div { padding: 8px 10px 9px; border-right: 1px solid var(--inchiostro, #16202b); border-bottom: 1px solid var(--inchiostro, #16202b); } .ds-c-nome, .ds-c-num { grid-column: span 2; } .ds-etichetta { display: block; margin-bottom: 2px; font-family: 'Barlow Condensed', Barlow, sans-serif; font-weight: 600; font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--inchiostro-2, #46515d); } .ds-valore { font-family: 'Barlow Condensed', Barlow, sans-serif; font-weight: 600; font-size: 1.5rem; line-height: 1.1; } .ds-valore2 { font-weight: 600; font-size: 1rem; } .ds-monumentale { font-family: 'Barlow Condensed', Barlow, sans-serif; font-weight: 600; font-size: 4rem; line-height: 0.85; letter-spacing: -0.02em; font-variant-numeric: tabular-nums lining-nums; } .ds-monumentale small { font-size: 0.45em; letter-spacing: 0; margin-left: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "La tavola sotto verifica",
+    "overview": "Ogni schermata è un foglio da disegno tecnico che il verificatore sta controllando sul check print: inchiostro blu-nero su carta bianca fredda, filetti sottili, lettering condensato e cifre tabellari. Il colore non decora mai: compare solo come segno del verificatore. Il giallo evidenziatore marca ciò che è eseguito, la matita rossa marca ciò che manca. Tutto il resto è inchiostro.\n\nIl sistema è denso ma ordinato come una distinta base: tabelle rigate, righe di etichetta a griglia fissa, gerarchia ottenuta per sola scala e peso del condensato, non per riquadri o colore. I dispositivi del disegno tecnico (cornice con riferimenti di griglia, cartiglio, timbro di esito, linee di quota con datum al 50%, palloncini per i codici chapter, blocco revisioni) sono i componenti stessi dell'interfaccia, non ornamenti. Rifiuta la dashboard SaaS a schede, ombre e angoli arrotondati.\n\nL'app è usata al telefono in hangar e al PC d'ufficio: contrasto alto, bersagli touch ampi (40-52px), stampa A4 del solo foglio.",
+    "keyCharacteristics": [
+      "Inchiostro su carta; colore riservato ai segni di verifica (giallo = fatto, rosso = manca).",
+      "Angoli vivi ovunque; l'unica forma tonda è il palloncino.",
+      "Nessuna ombra: la profondità è data da filetti, doppia cornice e toni di carta.",
+      "Barlow per la prosa, Barlow Condensed per titoli, cifre, etichette e dati.",
+      "Cifre tabellari e allineate a destra in ogni colonna numerica."
+    ],
+    "rules": [
+      { "name": "La Regola dei Segni del Verificatore", "body": "Il giallo significa solo \"eseguito/soddisfatto\", il rosso solo \"manca/non conforme\". Nessun altro uso, nessun terzo colore di stato.", "section": "colors" },
+      { "name": "La Regola Mai Solo Colore", "body": "Ogni esito porta icona e testo (CONFORME, OK, manca 1) e ogni mancanza è anche tratteggiata; il colore conferma, non informa da solo.", "section": "colors" },
+      { "name": "La Regola della Sola Scala", "body": "La gerarchia si costruisce con dimensione e peso del condensato, mai con colore o riquadri.", "section": "typography" },
+      { "name": "La Regola delle Cifre Tabellari", "body": "Ogni numero è in condensato tabellare e, in colonna, allineato a destra.", "section": "typography" },
+      { "name": "La Regola del Filetto", "body": "Se serve separare, si traccia una linea; non si solleva una scheda. Spessore = importanza strutturale.", "section": "elevation" },
+      { "name": "La Regola dell'Arretramento", "body": "Quando un task della distinta è aperto, le altre righe scendono a opacità 0.45 (180ms ease-out): il fuoco si ottiene togliendo, non sollevando.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do usare l'evidenziatore (#f7e36a) solo per ciò che è eseguito o soddisfatto, e l'evidenziatore tenue per campire righe intere.",
+      "Do segnare ogni mancanza in rosso e tratteggiata, con icona e testo.",
+      "Do separare con filetti: 1px filetto chiaro tra righe, 1px inchiostro per strutture, 1.5-2px per cornici di blocco.",
+      "Do mettere titoli, cifre, codici ed etichette in Barlow Condensed con cifre tabellari.",
+      "Do riusare i dispositivi del disegno (foglio, cartiglio, timbro, quota, palloncino, blocco revisioni) prima di inventare un componente.",
+      "Do mantenere l'azione primaria nel raggio del pollice su mobile e bersagli touch da almeno 40px."
+    ],
+    "donts": [
+      "Don't usare ombre, schede sollevate o sfondi a riquadri colorati.",
+      "Don't arrotondare angoli: fanno eccezione solo palloncino, ciambella e tratto d'evidenziatore.",
+      "Don't introdurre un terzo colore di stato o usare giallo e rosso come decorazione.",
+      "Don't comunicare un esito con il solo colore.",
+      "Don't usare il giallo marchio (#f2d22e) fuori dalla sigla PTT."
+    ]
+  }
+}
