@@ -1,0 +1,226 @@
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { Config } from '../config';
+import { ErroreApp } from '../dominio/errori';
+import { RE_USERNAME, applica, errorePassword, oggiISO, type Comando } from '../dominio/motore';
+import type { Dati, Utente } from '../dominio/tipi';
+import { archivio, type Backend, type DatiPrimoAvvio, type Sessione } from './tipi';
+
+type ConfigSupabase = Extract<Config, { tipo: 'supabase' }>;
+
+const RICORDAMI = 'supabase:ricordami';
+
+function traduci(e: { message?: string; code?: string } | null | undefined): ErroreApp {
+  const m = e?.message ?? 'errore sconosciuto';
+  if (/row-level security|permission denied/i.test(m)) return new ErroreApp('PERMESSO_NEGATO', 'Non hai i permessi per questa operazione.');
+  if (e?.code === '23505') return new ErroreApp('DUPLICATO', 'Elemento già presente.');
+  if (e?.code === 'P0001') return new ErroreApp('VINCOLO', m);
+  if (e?.code === '23514') return new ErroreApp('VALIDAZIONE', 'Dati non validi.');
+  if (/JWT|session/i.test(m)) return new ErroreApp('AUTENTICAZIONE', 'Sessione scaduta: accedere di nuovo.');
+  if (/fetch|network|load failed/i.test(m)) return new ErroreApp('RETE', 'Impossibile contattare Supabase: verificare la connessione o eventuali blocchi della rete.');
+  return new ErroreApp('INTERNO', m);
+}
+
+function verifica<T>(r: { data: T; error: { message?: string; code?: string } | null }): T {
+  if (r.error) throw traduci(r.error);
+  return r.data;
+}
+
+/**
+ * Archivio Supabase (PostgreSQL + Auth + Realtime): i permessi sono applicati dal
+ * database (database/schema.sql). Il motore locale anticipa solo i messaggi di errore.
+ */
+export class SupabaseBackend implements Backend {
+  readonly tipo = 'supabase' as const;
+  readonly nome: string;
+  readonly permessiLatoServer = true;
+  private readonly sb: SupabaseClient;
+  private readonly locale = archivio('local');
+  private utente: Utente | null = null;
+  private dati: Dati | null = null;
+
+  constructor(private readonly c: ConfigSupabase) {
+    this.nome = `Supabase (${new URL(c.url).host})`;
+    const locale = this.locale;
+    // "resta connesso": la sessione va in localStorage, altrimenti solo nella scheda
+    const deposito = () => (locale.leggi(RICORDAMI) === '1' ? window.localStorage : window.sessionStorage);
+    this.sb = createClient(c.url, c.chiavePubblica, {
+      auth: {
+        storageKey: 'ptt:supabase:auth',
+        storage: {
+          getItem: (k) => window.sessionStorage.getItem(k) ?? window.localStorage.getItem(k),
+          setItem: (k, v) => deposito().setItem(k, v),
+          removeItem: (k) => {
+            window.sessionStorage.removeItem(k);
+            window.localStorage.removeItem(k);
+          },
+        },
+      },
+    });
+  }
+
+  private email = (username: string) => `${username.trim().toLowerCase()}@${this.c.dominioEmail}`;
+
+  async avvia() {
+    const stato = verifica(await this.sb.rpc('ptt_stato')) as { admin: boolean };
+    return stato.admin
+      ? { tipo: 'pronto' as const }
+      : { tipo: 'primo_avvio' as const, messaggio: 'Nessun Training Manager configurato: accedere con l’utente creato nel pannello Supabase per diventarlo.' };
+  }
+
+  private async entra(username: string, password: string) {
+    const { error } = await this.sb.auth.signInWithPassword({ email: this.email(username), password });
+    if (error) {
+      if (/invalid|credentials/i.test(error.message)) throw new ErroreApp('AUTENTICAZIONE', 'Username o password non corretti.');
+      if (/banned/i.test(error.message)) throw new ErroreApp('AUTENTICAZIONE', 'Account disattivato: rivolgersi al Training Manager.');
+      throw traduci(error);
+    }
+  }
+
+  private async profilo(): Promise<Utente | null> {
+    const { data } = await this.sb.auth.getUser();
+    if (!data.user) return null;
+    const p = verifica(await this.sb.from('profili').select('*').eq('id', data.user.id).maybeSingle()) as Utente | null;
+    this.utente = p;
+    return p;
+  }
+
+  async primoAvvio(d: DatiPrimoAvvio): Promise<Sessione> {
+    if (!RE_USERNAME.test(d.username.trim().toLowerCase())) throw new ErroreApp('VALIDAZIONE', 'Username non valido');
+    if (!d.nome.trim()) throw new ErroreApp('VALIDAZIONE', 'Indicare grado, nome e cognome');
+    this.locale.scrivi(RICORDAMI, '0');
+    await this.entra(d.username, d.password);
+    verifica(await this.sb.rpc('ptt_primo_admin', { p_username: d.username, p_nome: d.nome }));
+    return { utente: (await this.profilo())! };
+  }
+
+  async ripristinaSessione(): Promise<Sessione | null> {
+    const { data } = await this.sb.auth.getSession();
+    if (!data.session) return null;
+    const utente = await this.profilo();
+    if (utente?.attivo) return { utente };
+    await this.esci();
+    return null;
+  }
+
+  async accedi(username: string, password: string, ricordami: boolean): Promise<Sessione> {
+    this.locale.scrivi(RICORDAMI, ricordami ? '1' : '0');
+    await this.entra(username, password);
+    const utente = await this.profilo();
+    if (!utente?.attivo) {
+      await this.esci();
+      throw new ErroreApp('AUTENTICAZIONE', utente ? 'Account disattivato: rivolgersi al Training Manager.' : 'Account non abilitato: rivolgersi al Training Manager.');
+    }
+    return { utente };
+  }
+
+  async esci() {
+    await this.sb.auth.signOut();
+    this.utente = null;
+    this.dati = null;
+  }
+
+  async cambiaPassword(attuale: string, nuova: string) {
+    if (!this.utente) throw new ErroreApp('AUTENTICAZIONE', 'Sessione scaduta: accedere di nuovo.');
+    const problema = errorePassword(nuova);
+    if (problema) throw new ErroreApp('VALIDAZIONE', problema);
+    try {
+      await this.entra(this.utente.username, attuale);
+    } catch {
+      throw new ErroreApp('AUTENTICAZIONE', 'La password attuale non è corretta.');
+    }
+    const { error } = await this.sb.auth.updateUser({ password: nuova });
+    if (error) throw traduci(error);
+    verifica(await this.sb.rpc('ptt_password_cambiata'));
+  }
+
+  /** Legge tutte le righe visibili (le policy filtrano per ruolo), a blocchi di 1000. */
+  private async tutte<T>(tabella: string, ordine: string): Promise<T[]> {
+    const righe: T[] = [];
+    for (let da = 0; ; da += 1000) {
+      const blocco = verifica(await this.sb.from(tabella).select('*').order(ordine).range(da, da + 999)) as T[];
+      righe.push(...blocco);
+      if (blocco.length < 1000) return righe;
+    }
+  }
+
+  async caricaDati(): Promise<Dati> {
+    const [utenti, anagrafiche, training, istruttori, registrazioni] = await Promise.all([
+      this.tutte<Utente>('profili', 'created_at'),
+      this.tutte<Dati['anagrafiche'][number]>('anagrafiche', 'user_id'),
+      this.tutte<Dati['training'][number]>('training_data', 'user_id'),
+      this.tutte<Dati['istruttori'][number]>('istruttori', 'cognome'),
+      this.tutte<Dati['registrazioni'][number]>('registrazioni', 'data'),
+    ]);
+    this.dati = { utenti, anagrafiche, training, istruttori, registrazioni };
+    return this.dati;
+  }
+
+  private async funzione(corpo: Record<string, unknown>) {
+    const { data, error } = await this.sb.functions.invoke('gestione-utenti', { body: { ...corpo, dominioEmail: this.c.dominioEmail } });
+    if (error) {
+      let messaggio = error.message;
+      try {
+        messaggio = ((await (error as { context?: Response }).context?.json()) as { errore?: string })?.errore ?? messaggio;
+      } catch {
+        /* risposta non JSON */
+      }
+      throw new ErroreApp('VINCOLO', messaggio);
+    }
+    return data as { id: string };
+  }
+
+  async esegui(comando: Comando): Promise<Dati> {
+    if (!this.utente) throw new ErroreApp('AUTENTICAZIONE', 'Sessione scaduta: accedere di nuovo.');
+    // controllo preventivo con le stesse regole del database, per messaggi immediati e chiari
+    applica(this.dati ?? (await this.caricaDati()), comando, { utenteId: this.utente.id, ora: new Date().toISOString(), oggi: oggiISO() });
+    switch (comando.tipo) {
+      case 'anagrafica.salva':
+        verifica(await this.sb.from('anagrafiche').upsert(comando.anagrafica));
+        break;
+      case 'training.salva':
+        verifica(await this.sb.from('training_data').upsert(comando.user_ids.map((user_id) => ({ user_id, ...comando.training }))));
+        break;
+      case 'istruttore.crea':
+        verifica(await this.sb.from('istruttori').insert(comando.istruttore));
+        break;
+      case 'istruttore.modifica': {
+        const { id, ...campi } = comando.istruttore;
+        verifica(await this.sb.from('istruttori').update(campi).eq('id', id));
+        break;
+      }
+      case 'registrazione.salva':
+        verifica(await this.sb.from('registrazioni').upsert(comando.registrazione));
+        break;
+      case 'registrazione.elimina':
+        verifica(await this.sb.from('registrazioni').delete().eq('id', comando.id));
+        break;
+      case 'utente.crea':
+        await this.funzione({ azione: 'crea', ...comando.utente, password: comando.password });
+        break;
+      case 'utente.modifica':
+        await this.funzione({ azione: 'modifica', ...comando.utente, password: comando.password });
+        break;
+      case 'utente.passwordCambiata':
+        verifica(await this.sb.rpc('ptt_password_cambiata'));
+        break;
+    }
+    return this.caricaDati();
+  }
+
+  osserva(avvisa: () => void) {
+    let attesa: number | undefined;
+    const rimanda = () => {
+      window.clearTimeout(attesa);
+      attesa = window.setTimeout(avvisa, 400);
+    };
+    const canale = this.sb.channel('ptt-modifiche');
+    for (const table of ['registrazioni', 'anagrafiche', 'training_data', 'istruttori', 'profili']) {
+      canale.on('postgres_changes', { event: '*', schema: 'public', table }, rimanda);
+    }
+    canale.subscribe();
+    return () => {
+      window.clearTimeout(attesa);
+      void this.sb.removeChannel(canale);
+    };
+  }
+}

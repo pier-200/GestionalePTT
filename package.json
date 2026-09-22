@@ -1,0 +1,41 @@
+{
+  "name": "gestionale-ptt",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Gestionale Practical Type Training: logbook digitale del Practical Training Record CH-47F B1.3.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "e2e": "node tests/e2e.mjs",
+    "catalogo": "py -3.11 scripts/import_catalogo.py",
+    "pubblica": "node scripts/pubblica.mjs"
+  },
+  "dependencies": {
+    "@fontsource/barlow": "^5.3.0",
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "@mantine/core": "^9.6.2",
+    "@mantine/hooks": "^9.6.2",
+    "@mantine/notifications": "^9.6.2",
+    "@supabase/supabase-js": "^2.116.0",
+    "@tabler/icons-react": "^3.47.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "write-excel-file": "^4.1.1",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^22.20.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
+  }
+}
