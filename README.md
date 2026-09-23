@@ -101,7 +101,8 @@ Si sceglie in [`public/config.json`](public/config.json), senza ricompilare:
 | `supabase` (pronto) | PostgreSQL centrale | **dal database**, per corso (RLS) | in tempo reale |
 
 Al primo accesso il Training Manager inserisce un token GitHub fine-grained (Contents: Read and write sui due
-repository): viene cifrato nel portachiavi e non va condiviso.
+repository): viene cifrato nel portachiavi e non va condiviso. In alternativa la configurazione si fa da riga di
+comando con `node scripts/configura-github.mjs --token <github_pat_…> --username admin --password admin`.
 
 Istruzioni e migrazione: [docs/PUBBLICAZIONE.md](docs/PUBBLICAZIONE.md).
 

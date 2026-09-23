@@ -58,9 +58,22 @@ Per non dipendere dai token Supabase l'app lavora sull'**archivio GitHub**. Repo
 
 1. GitHub → **Settings → Developer settings → Fine-grained tokens → Generate new token**: accesso ai soli repository
    `tt-dati` e `tt-accessi`, permesso **Contents: Read and write**, scadenza lunga. Copiare il token (`github_pat_…`).
-2. Aprire https://pier-200.github.io/GestionaleTypeTraining/ → **Configurazione iniziale**: incollare il token e
-   scegliere username, nome e password del Training Manager. Il token viene cifrato nel portachiavi: non va dato a nessuno.
+2. Configurazione, in uno dei due modi:
+   - da riga di comando, senza toccare l'interfaccia:
+
+     ```bash
+     node scripts/configura-github.mjs --token <github_pat_…> --username admin --password admin
+     ```
+
+   - oppure aprire https://pier-200.github.io/GestionaleTypeTraining/ → **Configurazione iniziale** e compilare token,
+     username, nome e password del Training Manager.
+
+   Il token viene cifrato nel portachiavi e non va dato a nessuno.
 3. Da **Account** creare gli account di direttore, istruttori e frequentatori e iscriverli ai corsi.
+
+> La password del Training Manager protegge il token dentro il portachiavi, che sta su un repository **pubblico**:
+> una password corta (per esempio `admin`) va bene per le prime prove, per i dati veri serve una password lunga e un
+> token limitato ai soli due repository.
 
 I dati rimasti sul progetto Supabase non vengono toccati: per tornarci basta rimettere `"tipo": "supabase"` in
 `public/config.json` (dopo aver rieseguito `database/schema.sql`) e ripubblicare.
