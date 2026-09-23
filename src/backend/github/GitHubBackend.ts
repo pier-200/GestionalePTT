@@ -30,6 +30,7 @@ Ogni salvataggio crea un commit, quindi qualsiasi versione precedente è recuper
 - \`db/registrazioni/<id frequentatore>.json\`: logbook di ciascun frequentatore
 - \`db/lezioni/<id corso>.json\`: programma della parte teorica
 - \`db/presenze/<id corso>.json\`: rapportini presenze e assenze della parte teorica
+- \`db/certificati.json\`: registro dei certificati AER(EP).P-147
 `;
 
 /** Un file per collezione; registrazioni e lezioni divise per frequentatore e per corso (salvataggi più leggeri). */
@@ -45,6 +46,7 @@ function inFile(d: Dati): Map<string, string> {
     ['db/istruttori.json', testo(d.istruttori)],
     ['db/abilitazioni.json', testo(d.abilitazioni)],
     ['db/rapportini.json', testo(d.rapportini)],
+    ['db/certificati.json', testo(d.certificati)],
   ]);
   const raggruppa = <T,>(elementi: T[], chiave: (x: T) => string) => {
     const m = new Map<string, T[]>();
@@ -77,6 +79,7 @@ function daFile(file: Map<string, string>): Dati {
     istruttori: elenco(file.get('db/istruttori.json')),
     abilitazioni: elenco(file.get('db/abilitazioni.json')),
     rapportini: elenco(file.get('db/rapportini.json')),
+    certificati: elenco(file.get('db/certificati.json')),
     registrazioni: raccogli('db/registrazioni/'),
     lezioni: raccogli('db/lezioni/'),
     presenze: raccogli('db/presenze/'),

@@ -179,6 +179,21 @@ describe('programma teorico', () => {
     expect((await uno(U.istAltro, 'select count(*)::int n from public.presenze')).n).toBe(0);
   });
 
+  it('certificati: li tiene il TM, li legge l’intestatario e lo staff del corso', async () => {
+    const cert = (numero: number, user: string) =>
+      `insert into public.certificati (corso_id, user_id, numero, anno, tipo, mds, categoria) values ('${C1}', '${user}', ${numero}, 2026, 'teorico', 'CH-47F', 'B1.3') returning id`;
+    expect(await righe(U.tm, cert(1, U.a))).toHaveLength(1);
+    expect(await errore(U.dir, cert(2, U.b))).toMatch(/row-level security/);
+    expect(await errore(U.tm, cert(1, U.b))).toMatch(/unique|duplicate/);
+    expect(await errore(U.tm, cert(3, U.ist))).toMatch(/non è iscritto/);
+    expect((await uno(U.a, 'select count(*)::int n from public.certificati')).n).toBe(1);
+    expect((await uno(U.b, 'select count(*)::int n from public.certificati')).n).toBe(0);
+    expect((await uno(U.ist, 'select count(*)::int n from public.certificati')).n).toBe(1);
+    expect((await uno(U.istAltro, 'select count(*)::int n from public.certificati')).n).toBe(0);
+    // un certificato rilasciato deve avere la data
+    expect(await errore(U.tm, `update public.certificati set stato = 'rilasciato' where numero = 1`)).toMatch(/check/);
+  });
+
   it('account disattivato: non vede più nulla', async () => {
     await righe(U.tm, `update public.profili set attivo = false where id = '${U.a}'`);
     expect((await uno(U.a, 'select count(*)::int n from public.corsi')).n).toBe(0);

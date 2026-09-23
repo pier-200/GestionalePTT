@@ -6,6 +6,7 @@ import { Foglio } from './componenti/disegno';
 import { Accesso, PrimoAvvio } from './pagine/Accesso';
 import { Account } from './pagine/Account';
 import { Assenze } from './pagine/Assenze';
+import { Certificati } from './pagine/Certificati';
 import { Corsi } from './pagine/Corsi';
 import { Corso } from './pagine/Corso';
 import { Dati, FormAnagrafica } from './pagine/Dati';
@@ -17,6 +18,7 @@ import { Logbook } from './pagine/Logbook';
 import { Materie } from './pagine/Materie';
 import { Rapportino } from './pagine/Rapportino';
 import { FormPassword, Profilo } from './pagine/Profilo';
+import { Registro } from './pagine/Registro';
 import { Report } from './pagine/Report';
 import { Settimana } from './pagine/Settimana';
 import { Tavola } from './pagine/Tavola';
@@ -50,6 +52,8 @@ const PAGINE: Record<string, Pagina> = {
   '/dati': { titolo: 'Personal & Training Data', pagina: Dati, corso: true },
   '/generalita': { titolo: 'Generality and Purpose', pagina: Generalita },
   '/profilo': { titolo: 'Profilo', pagina: Profilo },
+  '/registro': { titolo: 'Registro corsi e corsisti', pagina: Registro, soloAdmin: true },
+  '/certificati': { titolo: 'Registro dei certificati', pagina: Certificati, soloAdmin: true },
   '/account': { titolo: 'Account', pagina: Account, soloAdmin: true },
 };
 

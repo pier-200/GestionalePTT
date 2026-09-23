@@ -8,7 +8,7 @@ import { archivio, type Backend, type DatiPrimoAvvio, type Sessione } from './ti
 type ConfigSupabase = Extract<Config, { tipo: 'supabase' }>;
 
 const RICORDAMI = 'supabase:ricordami';
-const TABELLE = ['profili', 'corsi', 'iscrizioni', 'anagrafiche', 'training_data', 'istruttori', 'registrazioni', 'lezioni', 'abilitazioni', 'rapportini', 'presenze'] as const;
+const TABELLE = ['profili', 'corsi', 'iscrizioni', 'anagrafiche', 'training_data', 'istruttori', 'registrazioni', 'lezioni', 'abilitazioni', 'rapportini', 'presenze', 'certificati'] as const;
 
 function traduci(e: { message?: string; code?: string } | null | undefined): ErroreApp {
   const m = e?.message ?? 'errore sconosciuto';
@@ -164,6 +164,7 @@ export class SupabaseBackend implements Backend {
         if (t === 'abilitazioni') nuovi.abilitazioni = await this.tutte('abilitazioni', 'user_id');
         if (t === 'rapportini') nuovi.rapportini = await this.tutte('rapportini', 'data');
         if (t === 'presenze') nuovi.presenze = await this.tutte('presenze', 'data');
+        if (t === 'certificati') nuovi.certificati = await this.tutte('certificati', 'numero');
       }),
     );
     this.dati = nuovi;
@@ -256,6 +257,14 @@ export class SupabaseBackend implements Backend {
         this.sporche.add('rapportini').add('presenze');
         break;
       }
+      case 'certificato.salva':
+        verifica(await this.sb.from('certificati').upsert(comando.certificato));
+        this.sporche.add('certificati');
+        break;
+      case 'certificato.elimina':
+        verifica(await this.sb.from('certificati').delete().eq('id', comando.id));
+        this.sporche.add('certificati');
+        break;
       case 'rapportino.valida':
         verifica(
           await this.sb

@@ -219,6 +219,29 @@ await pausa(500);
 assert.match(await page.locator('.cartiglio').innerText(), /ore già erogate/i, 'quadro delle ore degli istruttori');
 assert.ok((await page.locator('.tabella tbody tr').count()) > 0, 'elenco istruttori con le ore erogate');
 
+// 12. registri del Training Manager: corsi e corsisti, certificati P-147
+await esci();
+await profilo('Luca Ferri');
+await page.goto(`${BASE}#/registro`);
+await pausa(700);
+const registro = await page.locator('body').innerText();
+assert.match(registro, /Registro corsi e corsisti/i, 'registro corsi e corsisti');
+assert.match(registro, /T1-2026\/1/, 'i corsi compaiono nel registro');
+assert.match(registro, /Non idoneo/i, 'il registro segnala i non idonei');
+
+await page.goto(`${BASE}#/certificati`);
+await pausa(700);
+assert.match(await page.locator('.cartiglio').innerText(), /AER\(EP\).P-147/i, 'registro dei certificati');
+const primaCerti = await page.locator('.tabella tbody tr').count();
+await page.getByRole('button', { name: 'Nuovo certificato' }).click();
+await page.getByRole('combobox', { name: 'Intestatario' }).click();
+await page.getByRole('option', { name: /Francesca Costa/ }).first().click();
+await page.getByRole('button', { name: 'Rilascia il certificato' }).click();
+await page.getByText('Certificato inserito nel registro').waitFor({ timeout: 15000 });
+await pausa(600);
+assert.equal(await page.locator('.tabella tbody tr').count(), primaCerti + 1, 'il certificato entra nel registro');
+assert.match(await page.locator('.tabella tbody').innerText(), /Rilasciato/i, 'certificato rilasciato');
+
 await browser.close();
 assert.deepEqual(errori, [], `errori JavaScript: ${errori.join('; ')}`);
 console.log('e2e: tutti i controlli superati');

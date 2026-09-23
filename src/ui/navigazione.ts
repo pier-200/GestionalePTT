@@ -1,5 +1,7 @@
 import {
   IconBook2,
+  IconBooks,
+  IconCertificate,
   IconCalendarWeek,
   IconChalkboard,
   IconClipboardCheck,
@@ -68,6 +70,12 @@ const PRATICA: Voce[] = [
   { a: '/dati', etichetta: 'Personal & Training Data', breve: 'Dati', icona: IconId, frequentatore: true, parte: 'ptt' },
 ];
 
+/** Registri del Training Manager (AER(EP).P-147). */
+const REGISTRI: Voce[] = [
+  { a: '/registro', etichetta: 'Registro corsi e corsisti', breve: 'Registro', icona: IconBooks },
+  { a: '/certificati', etichetta: 'Registro dei certificati', breve: 'Certificati', icona: IconCertificate },
+];
+
 export const CORSO: Voce = { a: '/corso', etichetta: 'Corso e iscritti', breve: 'Corso', icona: IconTable };
 export const CORSI: Voce = { a: '/corsi', etichetta: 'Corsi', breve: 'Corsi', icona: IconSchool };
 export const ACCOUNT: Voce = { a: '/account', etichetta: 'Account', breve: 'Account', icona: IconUserShield };
@@ -78,6 +86,8 @@ export interface Menu {
   corso: Voce[];
   teoria: Voce[];
   pratica: Voce[];
+  /** Solo Training Manager. */
+  registri: Voce[];
   altro: Voce[];
   /** Voci nell'ordine in cui appaiono (il frequentatore trova prima il proprio logbook). */
   ordinate: Voce[];
@@ -92,10 +102,11 @@ export function menuPer(utente: Utente, corso: Corso | undefined, ruolo: string 
     corso: [...(utente.ruolo === 'admin' ? [CORSI] : []), ...(corso && staff ? [CORSO] : [])],
     teoria: TEORIA.filter(mostra),
     pratica: PRATICA.filter(mostra),
+    registri: utente.ruolo === 'admin' && app === 'tutto' ? REGISTRI : [],
     altro: [...(mostra(GENERALITA) ? [GENERALITA] : []), ...(utente.ruolo === 'admin' ? [ACCOUNT] : []), PROFILO],
   };
   const parti = utente.ruolo === 'trainee' ? [menu.pratica, menu.teoria] : [menu.teoria, menu.pratica];
-  return { ...menu, ordinate: [...parti.flat(), ...menu.corso, ...menu.altro] };
+  return { ...menu, ordinate: [...parti.flat(), ...menu.corso, ...menu.registri, ...menu.altro] };
 }
 
 const CHIAVE_CORSO = 'ptt:corso';

@@ -1,7 +1,7 @@
 import { generaSettimana, lunediDi, sommaGiorni } from '../dominio/pianificazione';
 import { minimoMeta } from '../dominio/compliance';
 import { PROGRAMMI_PRATICI, PROGRAMMI_TEORICI, type Task } from '../dominio/programmi';
-import type { Abilitazione, Anagrafica, Corso, Dati, DatiTraining, Iscrizione, Istruttore, Lezione, Presenza, Rapportino, Registrazione, StatoPresenza, TipoEsecuzione, Utente } from '../dominio/tipi';
+import type { Abilitazione, Anagrafica, Certificato, Corso, Dati, DatiTraining, Iscrizione, Istruttore, Lezione, Presenza, Rapportino, Registrazione, StatoPresenza, TipoEsecuzione, Utente } from '../dominio/tipi';
 
 /**
  * Situazione esempio SINTETICA per la modalità dimostrativa: persone, matricole e
@@ -367,6 +367,41 @@ export function datiEsempio(): Dati {
   const lezioni2 = lezioniEsempio(CORSO_2, '2026-09-14', 2, docentiCorso2, g);
   for (const l of lezioni2) if (l.data <= '2026-09-18') Object.assign(l, { validata: true, validata_da: 'u-neri', validata_il: '2026-09-13T18:00:00.000Z' });
 
+  // registro dei certificati AER(EP).P-147: due rilasciati e uno ancora da completare
+  const certificato = (numero: number, user_id: string, tipo: Certificato['tipo'], stato: Certificato['stato'], extra: Partial<Certificato> = {}): Certificato => ({
+    id: `cert-${numero}`,
+    corso_id: CORSO_1,
+    user_id,
+    numero,
+    anno: 2026,
+    tipo,
+    stato,
+    mds: 'CH-47F',
+    categoria: 'B1.3',
+    programma: TEORICO.documento,
+    data_inizio: INIZIO,
+    data_fine: '2026-10-02',
+    ore: 219,
+    esame_data: '2026-07-24',
+    esame_esito: 'superato',
+    pratica_data: null,
+    pratica_esito: '',
+    data_rilascio: stato === 'rilasciato' ? '2026-09-21' : null,
+    luogo_rilascio: stato === 'rilasciato' ? 'Viterbo' : '',
+    organizzazione: '1° Reggimento AVES "Antares" – appr. DAAA n. 00/ESEMPIO',
+    note: '',
+    creato_il: '2026-09-21T09:00:00.000Z',
+    creato_da: 'u-tm',
+    modificato_il: '2026-09-21T09:00:00.000Z',
+    modificato_da: 'u-tm',
+    ...extra,
+  });
+  const certificati: Certificato[] = [
+    certificato(1, 'u-romano', 'completo', 'rilasciato', { pratica_data: '2026-09-18', pratica_esito: 'superato' }),
+    certificato(2, 'u-bruno', 'teorico', 'rilasciato'),
+    certificato(3, 'u-gallo', 'teorico', 'bozza', { esame_esito: '' }),
+  ];
+
   const presenze1 = rapportiniEsempio(CORSO_1, lezioni1, FREQUENTATORI.map((p) => p.id), '2026-09-21', '2026-09-21');
   const presenze2 = rapportiniEsempio(CORSO_2, lezioni2, NUOVI.map((p) => p.id), '2026-09-21', '2026-09-18');
 
@@ -382,5 +417,6 @@ export function datiEsempio(): Dati {
     abilitazioni,
     rapportini: [...presenze1.rapportini, ...presenze2.rapportini],
     presenze: [...presenze1.presenze, ...presenze2.presenze],
+    certificati,
   };
 }

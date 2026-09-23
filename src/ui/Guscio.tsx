@@ -38,6 +38,7 @@ export function Guscio({ titolo, children }: { titolo: string; children: ReactNo
           ['Corso', menu.corso],
           ['Parte teorica · MTT', menu.teoria],
           ['Parte pratica · PTT', menu.pratica],
+          ['Registri · AER(EP).P-147', menu.registri],
           ['', menu.altro],
         ];
   const primaVoce = menu.ordinate[0];

@@ -61,6 +61,20 @@ finché mancano, il corso si crea lo stesso e le pagine lo segnalano.
 - **Ore degli istruttori**: pagina «Docenti» con le ore a calendario ed erogate da ciascun istruttore.
 - **Excel**: «Excel» esporta il programma della settimana (formato provvisorio, da sostituire col modulo ufficiale).
 
+## Registri del Training Manager (AER(EP).P-147)
+
+Voci di menu riservate al Training Manager, nella sezione «Registri · AER(EP).P-147»:
+
+- **Registro corsi e corsisti**: tutti i corsi (MDS, categoria, periodo, sede, iscritti, ore di teoria svolte, media
+  della pratica, stato) e tutti i corsisti (anagrafica, MAML, corso, ore di assenza e percentuale, idoneità all'esame
+  teorico, percentuale della pratica, certificati). Esportabile in Excel su due fogli.
+- **Registro dei certificati**: i certificati **AER(EP).P-147** rilasciati a fine corso, con numerazione progressiva per
+  anno (`003/2026`). Ogni riga porta intestatario, corso, tipo (teorico, pratico o completo), programma di riferimento,
+  MDS e categoria, periodo e ore, esame teorico e valutazione pratica con i relativi esiti, luogo e data di rilascio,
+  Maintenance Organisation e stato (bozza, rilasciato, annullato). Scegliendo l'intestatario i dati del corso si
+  compilano da soli; «Rilascia il certificato» lo chiude e lo numera. Un certificato rilasciato non si cancella: si
+  annulla. Esportazione Excel del registro.
+
 ## Presenze e assenze
 
 - **Rapportino giornaliero**: compilazione standard 08:00–16:30 dal lunedì al giovedì e 08:00–12:00 il venerdì. Per

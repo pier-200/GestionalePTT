@@ -458,6 +458,10 @@ a {
     justify-content: center;
     align-items: flex-start;
   }
+  /* cartiglio senza intestazione del frequentatore: due sole righe di celle */
+  .cartiglio.compatto .c-numero {
+    grid-row: 1 / span 2;
+  }
 }
 
 /* timbro di esito */

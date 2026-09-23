@@ -24,7 +24,7 @@ export function Docenti() {
     <>
       <IntestazionePagina titolo="Ore degli istruttori" sotto={`${corso.nome} · ${programma.nome}`} />
 
-      <div className="cartiglio">
+      <div className="cartiglio compatto">
         <div className="c-numero">
           <div>
             <span className="etichetta">Ore già erogate</span>

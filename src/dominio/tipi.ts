@@ -175,6 +175,59 @@ export interface Presenza {
   motivo: string;
 }
 
+/** Certificato AER(EP).P-147 rilasciato al termine del corso. */
+export type TipoCertificato = 'teorico' | 'pratico' | 'completo';
+export type StatoCertificato = 'bozza' | 'rilasciato' | 'annullato';
+export type EsitoProva = '' | 'superato' | 'non superato';
+
+export const ETICHETTA_CERTIFICATO: Record<TipoCertificato, string> = {
+  teorico: 'Theoretical Training Certificate',
+  pratico: 'Practical Training Certificate',
+  completo: 'Type Training Certificate (teorico e pratico)',
+};
+
+export const ETICHETTA_STATO_CERTIFICATO: Record<StatoCertificato, string> = {
+  bozza: 'Bozza',
+  rilasciato: 'Rilasciato',
+  annullato: 'Annullato',
+};
+
+/**
+ * Riga del registro dei certificati: i dati del corso sono copiati qui al momento
+ * del rilascio, perché il certificato resta com'era anche se il corso cambia.
+ */
+export interface Certificato {
+  id: ID;
+  corso_id: ID;
+  user_id: ID;
+  /** Progressivo nell'anno, come sul registro. */
+  numero: number;
+  anno: number;
+  tipo: TipoCertificato;
+  stato: StatoCertificato;
+  mds: string;
+  categoria: string;
+  /** Documento di riferimento del programma svolto. */
+  programma: string;
+  data_inizio: string | null;
+  data_fine: string | null;
+  /** Ore di addestramento teorico riconosciute. */
+  ore: number;
+  esame_data: string | null;
+  esame_esito: EsitoProva;
+  pratica_data: string | null;
+  pratica_esito: EsitoProva;
+  data_rilascio: string | null;
+  luogo_rilascio: string;
+  /** Maintenance Organisation e numero di approvazione DAAA. */
+  organizzazione: string;
+  note: string;
+  creato_il: string;
+  creato_da: ID | null;
+  modificato_il: string;
+  modificato_da: ID | null;
+}
+
 /** Materia che un istruttore è abilitato a erogare. */
 export interface Abilitazione {
   id: ID;
@@ -195,6 +248,7 @@ export interface Dati {
   abilitazioni: Abilitazione[];
   rapportini: Rapportino[];
   presenze: Presenza[];
+  certificati: Certificato[];
 }
 
 export const datiVuoti = (): Dati => ({
@@ -209,6 +263,7 @@ export const datiVuoti = (): Dati => ({
   abilitazioni: [],
   rapportini: [],
   presenze: [],
+  certificati: [],
 });
 
 export const ETICHETTA_RUOLO: Record<Ruolo, string> = {

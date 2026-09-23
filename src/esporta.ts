@@ -1,9 +1,10 @@
 import { chapterMateria, indice, materiaDi, programmaPratico, programmaTeorico, type ProgrammaPratico } from './dominio/programmi';
 import type { Report, RigaReport } from './dominio/compliance';
 import { oggiISO, type CampiLezione } from './dominio/motore';
-import { NOMI_GIORNI, giorniSettimana, orarioLezione } from './dominio/pianificazione';
-import { ETICHETTA_PERIODO, conMateria, type Corso, type Dati, type Registrazione, type Utente } from './dominio/tipi';
-import { esecuzione, formatoData, frequentatori, istruttoriDi, nomeIstruttore, nomeUtente, situazione } from './dominio/viste';
+import { NOMI_GIORNI, giorniSettimana, orarioLezione, statoTeorico } from './dominio/pianificazione';
+import { assenzeDi } from './dominio/presenze';
+import { ETICHETTA_CERTIFICATO, ETICHETTA_PERIODO, ETICHETTA_STATO_CERTIFICATO, conMateria, type Corso, type Dati, type Registrazione, type Utente } from './dominio/tipi';
+import { esecuzione, formatoData, frequentatori, iscritti, istruttoriDi, lezioniDi, nomeIstruttore, nomeUtente, presenzeDi, rapportiniDi, situazione } from './dominio/viste';
 
 /** Esportazioni (PROGETTO_Logbook_PTT.md §5): Excel del singolo frequentatore, Excel complessivo, CSV. */
 
@@ -226,6 +227,115 @@ export async function esportaSettimana(dati: Dati, corso: Corso, lunedi: string,
   });
   righe.push([], [{ v: 'Totale ore a programma nella settimana', b: true }, null, null, null, { v: totale, b: true }]);
   await scriviXlsx([{ nome: 'Programma settimanale', righe, larghezze: [12, 12, 8, 8, 12, 9, 44, 26, 26, 12, 30] }], `Programma_${pulisciNome(corso.codice)}_${lunedi}`);
+}
+
+/** Registro dei corsi e dei corsisti: il quadro d'insieme del Training Manager. */
+export async function esportaRegistro(dati: Dati) {
+  const corsi: Foglio = {
+    nome: 'Corsi',
+    larghezze: [16, 40, 12, 10, 12, 12, 24, 12, 12, 12, 12, 10],
+    righe: [
+      intestazione('Codice', 'Nome', 'MDS', 'Categoria', 'Inizio', 'Fine', 'Maintenance Organisation', 'Sede', 'Corsisti', 'Istruttori', 'Ore teoria svolte', 'Attivo'),
+      ...dati.corsi.map((c) => {
+        const teorico = programmaTeorico(c.programma_teorico);
+        const stato = teorico ? statoTeorico(teorico, lezioniDi(dati, c.id), oggiISO()) : null;
+        return [
+          c.codice,
+          c.nome,
+          c.mds,
+          c.categoria,
+          data(c.data_inizio),
+          data(c.data_fine),
+          c.maintenance_organization || null,
+          c.location || null,
+          frequentatori(dati, c.id, true).length,
+          iscritti(dati, c.id, 'instructor', true).length + iscritti(dati, c.id, 'direttore', true).length,
+          stato ? Math.round(stato.svolti / 60) : null,
+          c.attivo ? 'Sì' : 'No',
+        ];
+      }),
+    ],
+  };
+  const corsisti: Foglio = {
+    nome: 'Corsisti',
+    larghezze: [16, 18, 18, 12, 20, 16, 16, 12, 12, 14, 12, 18],
+    righe: [
+      intestazione('Grado', 'Nome', 'Cognome', 'Data di nascita', 'Luogo di nascita', 'MAML', 'Username', 'Corso', 'MDS/Cat.', 'Assenze (h)', '% assenze', 'Esame teorico', '% pratica', 'Certificati'),
+      ...dati.corsi.flatMap((c) => {
+        const teorico = programmaTeorico(c.programma_teorico);
+        const pratico = programmaPratico(c.programma_pratico);
+        const rapportini = rapportiniDi(dati, c.id);
+        const presenze = presenzeDi(dati, c.id);
+        const lezioni = lezioniDi(dati, c.id);
+        return frequentatori(dati, c.id, true).map((u) => {
+          const a = dati.anagrafiche.find((x) => x.user_id === u.id);
+          const assenze = teorico ? assenzeDi(teorico, c, lezioni, rapportini, presenze, u.id) : null;
+          const report = pratico ? situazione(dati, c, u).report : null;
+          return [
+            a?.grado ?? null,
+            a?.nome ?? null,
+            a?.cognome ?? null,
+            data(a?.data_nascita),
+            a?.citta_nascita ?? null,
+            a?.maml || null,
+            u.username,
+            c.codice,
+            `${c.mds} ${c.categoria}`,
+            assenze ? Math.round((assenze.minuti / 60) * 10) / 10 : null,
+            assenze ? perc(assenze.percentuale) : null,
+            assenze ? (assenze.idoneo ? 'Idoneo' : 'NON IDONEO') : null,
+            report ? perc(report.totale.percentuale) : null,
+            dati.certificati.filter((x) => x.user_id === u.id && x.corso_id === c.id).map((x) => `${x.numero}/${x.anno}`).join(', ') || null,
+          ];
+        });
+      }),
+    ],
+  };
+  await scriviXlsx([corsi, corsisti], `Registro_corsi_e_corsisti_${oggiISO()}`);
+}
+
+/** Registro dei certificati AER(EP).P-147. */
+export async function esportaCertificati(dati: Dati) {
+  const righe = [...dati.certificati].sort((a, b) => a.anno - b.anno || a.numero - b.numero);
+  const foglio: Foglio = {
+    nome: 'Certificati',
+    larghezze: [10, 8, 30, 16, 18, 18, 12, 10, 34, 12, 12, 10, 14, 14, 14, 14, 14, 18, 26, 30],
+    righe: [
+      intestazione(
+        'Numero', 'Anno', 'Tipo', 'Grado', 'Nome', 'Cognome', 'MAML', 'Corso', 'Programma di riferimento', 'MDS', 'Categoria', 'Ore',
+        'Corso dal', 'Corso al', 'Esame teorico', 'Esito esame', 'Valutazione pratica', 'Esito pratica', 'Rilascio', 'Luogo', 'Maintenance Organisation', 'Stato', 'Note',
+      ),
+      ...righe.map((c) => {
+        const a = dati.anagrafiche.find((x) => x.user_id === c.user_id);
+        return [
+          c.numero,
+          c.anno,
+          ETICHETTA_CERTIFICATO[c.tipo],
+          a?.grado ?? null,
+          a?.nome ?? nomeUtente(dati, c.user_id),
+          a?.cognome ?? null,
+          a?.maml || null,
+          dati.corsi.find((x) => x.id === c.corso_id)?.codice ?? null,
+          c.programma || null,
+          c.mds,
+          c.categoria,
+          c.ore || null,
+          data(c.data_inizio),
+          data(c.data_fine),
+          data(c.esame_data),
+          c.esame_esito || null,
+          data(c.pratica_data),
+          c.pratica_esito || null,
+          data(c.data_rilascio),
+          c.luogo_rilascio || null,
+          c.organizzazione || null,
+          ETICHETTA_STATO_CERTIFICATO[c.stato],
+          c.note || null,
+        ];
+      }),
+    ],
+  };
+  await scriviXlsx([foglio], `Registro_certificati_P147_${oggiISO()}`);
 }
 
 const COLONNE_CSV = ['Frequentatore', 'Task ID', 'Modulo', 'Chapter', 'Task type', 'Descrizione', 'Maintenance location', 'Data', 'Esecuzione', 'Matricola', 'ET (min)', 'Instructor', 'Modificato il', 'Modificato da'];

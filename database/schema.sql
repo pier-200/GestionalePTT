@@ -190,6 +190,40 @@ create table if not exists public.abilitazioni (
   unique (user_id, programma, materia)
 );
 
+-- registro dei certificati AER(EP).P-147
+create table if not exists public.certificati (
+  id uuid primary key default gen_random_uuid(),
+  corso_id uuid not null references public.corsi on delete cascade,
+  user_id uuid not null references public.profili on delete cascade,
+  numero int not null check (numero between 1 and 9999),
+  anno int not null check (anno between 2000 and 2100),
+  tipo text not null check (tipo in ('teorico', 'pratico', 'completo')),
+  stato text not null default 'bozza' check (stato in ('bozza', 'rilasciato', 'annullato')),
+  -- copia dei dati del corso al rilascio: il certificato non cambia se il corso cambia
+  mds text not null default '' check (length(mds) <= 30),
+  categoria text not null default '' check (length(categoria) <= 10),
+  programma text not null default '' check (length(programma) <= 300),
+  data_inizio date,
+  data_fine date,
+  ore int not null default 0 check (ore between 0 and 2000),
+  esame_data date,
+  esame_esito text not null default '' check (esame_esito in ('', 'superato', 'non superato')),
+  pratica_data date,
+  pratica_esito text not null default '' check (pratica_esito in ('', 'superato', 'non superato')),
+  data_rilascio date,
+  luogo_rilascio text not null default '' check (length(luogo_rilascio) <= 100),
+  organizzazione text not null default '' check (length(organizzazione) <= 200),
+  note text not null default '' check (length(note) <= 300),
+  creato_il timestamptz not null default now(),
+  creato_da uuid,
+  modificato_il timestamptz not null default now(),
+  modificato_da uuid,
+  unique (anno, numero),
+  check (data_fine is null or data_inizio is null or data_fine >= data_inizio),
+  check (stato <> 'rilasciato' or data_rilascio is not null)
+);
+create index if not exists certificati_utente on public.certificati (user_id);
+
 -- ---------------------------------------------------------------------------
 -- Funzioni di supporto
 -- ---------------------------------------------------------------------------
@@ -356,6 +390,28 @@ drop trigger if exists controlla on public.presenze;
 create trigger controlla before insert or update on public.presenze
 for each row execute function public.ptt_controlla_presenza();
 
+create or replace function public.ptt_traccia_certificato() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from public.iscrizioni i where i.corso_id = new.corso_id and i.user_id = new.user_id and i.ruolo = 'trainee') then
+    raise exception 'Il frequentatore non è iscritto a questo corso' using errcode = 'P0001';
+  end if;
+  if auth.uid() is null then return new; end if;
+  if tg_op = 'INSERT' then
+    new.creato_il := now();
+    new.creato_da := auth.uid();
+  else
+    new.creato_il := old.creato_il;
+    new.creato_da := old.creato_da;
+  end if;
+  new.modificato_il := now();
+  new.modificato_da := auth.uid();
+  return new;
+end $$;
+drop trigger if exists traccia on public.certificati;
+create trigger traccia before insert or update on public.certificati
+for each row execute function public.ptt_traccia_certificato();
+
 create or replace function public.ptt_aggiornato() returns trigger
 language plpgsql as $$
 begin
@@ -408,6 +464,7 @@ alter table public.lezioni enable row level security;
 alter table public.abilitazioni enable row level security;
 alter table public.rapportini enable row level security;
 alter table public.presenze enable row level security;
+alter table public.certificati enable row level security;
 
 drop policy if exists lettura on public.profili;
 -- i nomi degli account servono per gli elenchi (istruttore della lezione, autore di una modifica)
@@ -485,6 +542,14 @@ create policy scrittura on public.presenze for all to authenticated
   using (public.ptt_guida(corso_id) or (public.ptt_membro(corso_id) and public.ptt_rapportino_aperto(corso_id, data)))
   with check (public.ptt_guida(corso_id) or (public.ptt_membro(corso_id) and public.ptt_rapportino_aperto(corso_id, data)));
 
+drop policy if exists lettura on public.certificati;
+-- il proprio certificato lo vede il frequentatore, tutti gli altri solo il Training Manager e lo staff del corso
+create policy lettura on public.certificati for select to authenticated
+  using (user_id = auth.uid() or public.ptt_staff_di(user_id));
+drop policy if exists scrittura on public.certificati;
+create policy scrittura on public.certificati for all to authenticated
+  using (public.ptt_e_admin()) with check (public.ptt_e_admin());
+
 drop policy if exists lettura on public.abilitazioni;
 create policy lettura on public.abilitazioni for select to authenticated using (public.ptt_ruolo() is not null);
 drop policy if exists scrittura on public.abilitazioni;
@@ -496,15 +561,16 @@ create policy scrittura on public.abilitazioni for all to authenticated
 -- ---------------------------------------------------------------------------
 
 revoke all on public.profili, public.corsi, public.iscrizioni, public.anagrafiche, public.training_data,
-  public.istruttori, public.registrazioni, public.lezioni, public.abilitazioni, public.rapportini, public.presenze from anon;
+  public.istruttori, public.registrazioni, public.lezioni, public.abilitazioni, public.rapportini, public.presenze,
+  public.certificati from anon;
 grant select, update on public.profili to authenticated;
 grant select, insert, update, delete on public.corsi, public.iscrizioni, public.anagrafiche, public.training_data,
-  public.registrazioni, public.lezioni, public.abilitazioni, public.rapportini, public.presenze to authenticated;
+  public.registrazioni, public.lezioni, public.abilitazioni, public.rapportini, public.presenze, public.certificati to authenticated;
 grant select, insert, update on public.istruttori to authenticated;
 -- chiave di servizio (Edge Function gestione-utenti e script di amministrazione): scavalca RLS ma servono i privilegi
 grant select, insert, update, delete on public.profili, public.corsi, public.iscrizioni, public.anagrafiche,
   public.training_data, public.istruttori, public.registrazioni, public.lezioni, public.abilitazioni,
-  public.rapportini, public.presenze to service_role;
+  public.rapportini, public.presenze, public.certificati to service_role;
 grant execute on function public.ptt_stato() to anon, authenticated;
 grant execute on function public.ptt_primo_admin(text, text), public.ptt_password_cambiata() to authenticated;
 grant execute on function public.ptt_rapportino_aperto(uuid, date) to authenticated;
@@ -512,7 +578,7 @@ grant execute on function public.ptt_rapportino_aperto(uuid, date) to authentica
 do $$
 declare t text;
 begin
-  foreach t in array array['profili', 'corsi', 'iscrizioni', 'anagrafiche', 'training_data', 'istruttori', 'registrazioni', 'lezioni', 'abilitazioni', 'rapportini', 'presenze'] loop
+  foreach t in array array['profili', 'corsi', 'iscrizioni', 'anagrafiche', 'training_data', 'istruttori', 'registrazioni', 'lezioni', 'abilitazioni', 'rapportini', 'presenze', 'certificati'] loop
     if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
       execute format('alter publication supabase_realtime add table public.%I', t);
     end if;

@@ -25,7 +25,7 @@ export function Teoria() {
     <>
       <IntestazionePagina titolo="Situazione della teoria" sotto={`${corso.nome} · ${programma.nome}`} />
 
-      <div className="cartiglio">
+      <div className="cartiglio compatto">
         <div className="c-numero">
           <div>
             <span className="etichetta">Ore ancora da programmare</span>

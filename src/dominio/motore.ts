@@ -1,7 +1,7 @@
 import { ErroreApp } from './errori';
 import { mdsDi, indice, programmaPratico, programmaTeorico, programmiPer } from './programmi';
 import { indiceGiorno, periodiDelGiorno } from './pianificazione';
-import { conMateria, type Anagrafica, type Corso, type Dati, type DatiTraining, type ID, type Iscrizione, type Istruttore, type Lezione, type Presenza, type Rapportino, type Registrazione, type Ruolo, type RuoloCorso, type StatoPresenza, type TipoEsecuzione, type TipoPeriodo, type Utente } from './tipi';
+import { conMateria, type Anagrafica, type Certificato, type Corso, type Dati, type DatiTraining, type EsitoProva, type ID, type Iscrizione, type Istruttore, type Lezione, type Presenza, type Rapportino, type Registrazione, type Ruolo, type RuoloCorso, type StatoCertificato, type StatoPresenza, type TipoCertificato, type TipoEsecuzione, type TipoPeriodo, type Utente } from './tipi';
 
 /**
  * Comandi di modifica dei dati, con permessi e validazioni. Il motore è eseguito
@@ -24,6 +24,7 @@ export type CampiCorso = Pick<
 >;
 export type CampiLezione = Pick<Lezione, 'id' | 'corso_id' | 'data' | 'ordine' | 'minuti' | 'materia' | 'istruttore_id' | 'tipo' | 'note'>;
 export type CampiPresenza = Pick<Presenza, 'id' | 'user_id' | 'stato' | 'dalle' | 'alle' | 'motivo'>;
+export type CampiCertificato = Omit<Certificato, 'creato_il' | 'creato_da' | 'modificato_il' | 'modificato_da'>;
 
 export type Comando =
   | { tipo: 'corso.salva'; corso: CampiCorso }
@@ -40,6 +41,8 @@ export type Comando =
   | { tipo: 'settimana.valida'; corso_id: ID; giorni: string[]; valida: boolean }
   | { tipo: 'rapportino.salva'; corso_id: ID; data: string; note: string; presenze: CampiPresenza[] }
   | { tipo: 'rapportino.valida'; corso_id: ID; data: string; valida: boolean }
+  | { tipo: 'certificato.salva'; certificato: CampiCertificato }
+  | { tipo: 'certificato.elimina'; id: ID }
   | { tipo: 'abilitazioni.imposta'; user_id: ID; programma: string; materie: string[] }
   | { tipo: 'utente.crea'; utente: CampiUtente; password: string }
   | { tipo: 'utente.modifica'; utente: Pick<Utente, 'id' | 'nome' | 'attivo' | 'istruttore_id'>; password?: string }
@@ -65,6 +68,13 @@ export const RE_USERNAME = /^[a-z0-9][a-z0-9._-]{2,39}$/;
 export const RE_DATA = /^\d{4}-\d{2}-\d{2}$/;
 export const TIPI_ESECUZIONE: TipoEsecuzione[] = ['AC', 'SIM', 'CLA'];
 export const TIPI_PERIODO: TipoPeriodo[] = ['lezione', 'recupero', 'meo', 'sospensione', 'esame'];
+export const TIPI_CERTIFICATO: TipoCertificato[] = ['teorico', 'pratico', 'completo'];
+export const STATI_CERTIFICATO: StatoCertificato[] = ['bozza', 'rilasciato', 'annullato'];
+export const ESITI_PROVA: EsitoProva[] = ['', 'superato', 'non superato'];
+
+/** Primo numero libero del registro dei certificati per quell'anno. */
+export const prossimoNumero = (dati: Dati, anno: number) =>
+  dati.certificati.filter((c) => c.anno === anno).reduce((max, c) => Math.max(max, c.numero), 0) + 1;
 
 export const oggiISO = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -456,6 +466,61 @@ export function applica(dati: Dati, comando: Comando, ctx: Contesto): Esito {
         dati: { ...dati, abilitazioni: [...altre, ...materie.map((materia) => ({ id: `${comando.user_id}|${comando.programma}|${materia}`, user_id: comando.user_id, programma: comando.programma, materia }))] },
         effetti: [],
       };
+    }
+
+    case 'certificato.salva': {
+      permesso(admin, 'Solo il Training Manager tiene il registro dei certificati.');
+      const c = comando.certificato;
+      const esistente = dati.certificati.find((x) => x.id === c.id);
+      corso(c.corso_id);
+      if (!iscrittoCome(c.corso_id, c.user_id, 'trainee')) throw new ErroreApp('NON_TROVATO', 'Frequentatore non iscritto a questo corso.');
+      const v = new Controlli();
+      if (!TIPI_CERTIFICATO.includes(c.tipo)) v.errori.tipo = 'Tipo di certificato non valido';
+      if (!STATI_CERTIFICATO.includes(c.stato)) v.errori.stato = 'Stato non valido';
+      if (!ESITI_PROVA.includes(c.esame_esito)) v.errori.esame_esito = 'Esito dell’esame non valido';
+      if (!ESITI_PROVA.includes(c.pratica_esito)) v.errori.pratica_esito = 'Esito della valutazione pratica non valido';
+      const anno = Math.trunc(Number(c.anno));
+      if (!Number.isInteger(anno) || anno < 2000 || anno > 2100) v.errori.anno = 'Anno non valido';
+      const numero = Math.trunc(Number(c.numero)) || prossimoNumero(dati, anno);
+      if (numero < 1 || numero > 9999) v.errori.numero = 'Numero non valido';
+      else if (dati.certificati.some((x) => x.id !== c.id && x.anno === anno && x.numero === numero)) v.errori.numero = `Il numero ${numero}/${anno} è già nel registro`;
+      const data_inizio = v.data('data_inizio', 'Data di inizio', c.data_inizio, false);
+      const data_fine = v.data('data_fine', 'Data di fine', c.data_fine, false);
+      if (data_inizio && data_fine && data_fine < data_inizio) v.errori.data_fine = 'La data di fine precede la data di inizio';
+      const data_rilascio = v.data('data_rilascio', 'Data di rilascio', c.data_rilascio, c.stato === 'rilasciato', ctx.oggi);
+      const ore = Number(c.ore);
+      if (!Number.isFinite(ore) || ore < 0 || ore > 2000) v.errori.ore = 'Ore non valide';
+      const nuovo: Certificato = {
+        ...c,
+        numero,
+        anno,
+        mds: v.testo('mds', 'MDS', c.mds, 30, false),
+        categoria: v.testo('categoria', 'Categoria', c.categoria, 10, false),
+        programma: v.testo('programma', 'Programma', c.programma, 300, false),
+        data_inizio,
+        data_fine,
+        ore: Math.round(ore),
+        esame_data: v.data('esame_data', 'Data dell’esame teorico', c.esame_data, false, ctx.oggi),
+        pratica_data: v.data('pratica_data', 'Data della valutazione pratica', c.pratica_data, false, ctx.oggi),
+        data_rilascio,
+        luogo_rilascio: v.testo('luogo_rilascio', 'Luogo di rilascio', c.luogo_rilascio, 100, c.stato === 'rilasciato'),
+        organizzazione: v.testo('organizzazione', 'Maintenance Organisation', c.organizzazione, 200, false),
+        note: v.testo('note', 'Note', c.note, 300, false),
+        creato_il: esistente?.creato_il ?? ctx.ora,
+        creato_da: esistente?.creato_da ?? io.id,
+        modificato_il: ctx.ora,
+        modificato_da: io.id,
+      };
+      v.verifica();
+      return { dati: { ...dati, certificati: sostituisci(dati.certificati, (x) => x.id === c.id, nuovo) }, effetti: [] };
+    }
+
+    case 'certificato.elimina': {
+      permesso(admin, 'Solo il Training Manager tiene il registro dei certificati.');
+      const esistente = dati.certificati.find((x) => x.id === comando.id);
+      if (!esistente) throw new ErroreApp('NON_TROVATO', 'Certificato non trovato.');
+      if (esistente.stato === 'rilasciato') throw new ErroreApp('VINCOLO', 'Un certificato rilasciato non si cancella: annullarlo.');
+      return { dati: { ...dati, certificati: dati.certificati.filter((x) => x.id !== comando.id) }, effetti: [] };
     }
 
     case 'utente.crea': {
