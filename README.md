@@ -121,6 +121,7 @@ npm install
 npm run dev          # http://localhost:5174
 npm test             # dominio, pianificazione, presenze e schema SQL (PGlite)
 npm run build && npx vite preview --port 4174 && npm run e2e   # prova nel browser Edge
+TT_TOKEN=<token GitHub> node tests/collaudo-github.mjs           # collaudo dell'archivio GitHub su repo di prova
 npm run pubblica     # compila e aggiorna GitHub Pages (ramo gh-pages)
 ```
 
@@ -134,7 +135,7 @@ supabase/functions/gestione-utenti   creazione e modifica account (Edge Function
 src/dominio/    programmi, compliance, pianificazione, presenze, motore dei comandi (permessi), viste
 src/backend/    archivi demo, github, supabase                          src/esporta.ts  Excel e CSV
 src/ui/         interfaccia: guscio, pagine MTT e PTT, stile «tavola tecnica»
-tests/          dominio e pianificazione, schema SQL, end-to-end
+tests/          dominio, pianificazione e presenze, schema SQL, end-to-end (demo e archivio GitHub)
 ```
 
 Gli Excel e i PDF originali restano fuori dalla repository pubblica (tranne il modulo vuoto del Compliance Report,

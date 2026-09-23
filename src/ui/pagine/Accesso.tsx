@@ -8,19 +8,27 @@ import { ETICHETTA_RUOLO } from '../../dominio/tipi';
 import { nomeUtente, situazione } from '../../dominio/viste';
 import { corsiDi } from '../../dominio/motore';
 import { chiaveOrdine } from '../../dominio/viste';
+import { applicativo, type Applicativo } from '../navigazione';
 import { useStato } from '../stato';
 
+const SOTTOTITOLO: Record<Applicativo, string> = {
+  mtt: 'Parte teorica: programma settimanale, presenze e assenze del corso CH-47F · Cat. B1.3',
+  ptt: 'Logbook digitale del Practical Training Record CH-47F · Cat. B1.3',
+  tutto: 'Corsi CH-47F Cat. B1.3: parte teorica (MTT) e parte pratica (PTT)',
+};
+
 function Testata() {
+  const app = applicativo();
   return (
     <div style={{ marginBottom: 24 }}>
       <div className="marchio-sigla" style={{ fontSize: '3rem' }}>
-        <span>PTT</span>
+        <span>{app === 'tutto' ? 'TT' : app.toUpperCase()}</span>
       </div>
       <h1 className="titolo-pagina" style={{ marginTop: 10 }}>
-        Gestionale Practical Type Training
+        Gestionale Type Training
       </h1>
       <Text className="debole" mt={4}>
-        Logbook digitale del Practical Training Record CH-47F · Cat. B1.3
+        {SOTTOTITOLO[app]}
       </Text>
     </div>
   );
@@ -136,10 +144,11 @@ export function Accesso() {
             <ol style={{ paddingLeft: 20, lineHeight: 1.6 }}>
               <li>Accedi con l'account ricevuto dal Training Manager.</li>
               <li>Al primo accesso sostituisci la password provvisoria e compila i Personal Data.</li>
-              <li>Dopo ogni task eseguito premi «Registra task»: il Compliance Report si aggiorna subito, anche per il Training Manager.</li>
+              <li>Parte teorica: programma settimanale, rapportino presenze e quadro delle assenze.</li>
+              <li>Parte pratica: dopo ogni task eseguito premi «Registra task» e il Compliance Report si aggiorna subito.</li>
             </ol>
             <Text size="sm" className="debole">
-              Sul cellulare: menu del browser → «Aggiungi a schermata Home» per usare l'app come PTT.
+              Sul cellulare: menu del browser → «Aggiungi a schermata Home» per usare l'app come {applicativo() === 'tutto' ? 'TT' : applicativo().toUpperCase()}.
             </Text>
           </section>
         )}
