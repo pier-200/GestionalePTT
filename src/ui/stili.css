@@ -1630,86 +1630,221 @@ mark.evidenziato {
 .conto-scalare .quota-nome {
   display: none;
 }
-.settimana {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 1fr;
-}
-@media (min-width: 900px) {
-  .settimana {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    align-items: start;
-  }
-}
-.giorno {
-  border: 1px solid var(--inchiostro);
-  background: var(--foglio);
-  min-height: 90px;
-}
-.giorno.chiuso {
-  background: var(--carta-2);
-  border-style: dashed;
-}
-.giorno > header {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 7px 10px;
-  border-bottom: 1px solid var(--inchiostro);
-  font-family: var(--condensato);
-  font-weight: 600;
-  background: var(--carta-2);
-}
-.giorno .vuoto {
-  margin: 0;
-  padding: 14px 10px;
-  font-size: 0.875rem;
-}
-.lezione {
-  display: grid;
-  gap: 6px;
-  padding: 9px 10px 11px;
-  border-bottom: 1px solid var(--filetto-chiaro);
-}
-.lezione:last-child {
-  border-bottom: 0;
-}
-.lezione-testa {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  font-size: 0.875rem;
-}
-.lezione-testa .debole {
-  margin-left: auto;
-}
-.lezione-materia {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  line-height: 1.3;
-}
-.lezione-materia strong {
-  font-size: 0.9375rem;
-}
-.palloncino.piccolo {
-  min-width: 26px;
-  height: 24px;
-  font-size: 0.75rem;
-  padding: 0 6px;
-}
-.residuo {
-  font-size: 0.75rem;
-  color: var(--inchiostro-2);
-  text-align: right;
+.settimana-mobile,
+.griglia-settimana {
+  margin-top: 4px;
 }
 
-.lezione.recupero {
-  background: repeating-linear-gradient(135deg, transparent, transparent 9px, var(--carta-2) 9px, var(--carta-2) 18px);
+/* griglia della settimana: periodi in riga, giorni in colonna */
+.griglia-settimana {
+  display: grid;
+  gap: 1px;
+  background: var(--filetto-chiaro);
+  border: 1px solid var(--inchiostro);
 }
-.lezione-testa .mantine-Select-root {
-  margin-left: auto;
+.g-angolo,
+.g-giorno,
+.g-ora,
+.g-cella {
+  background: var(--foglio);
+}
+.g-giorno {
+  padding: 6px 8px;
+  font-family: var(--condensato);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  background: var(--carta-2);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.g-ora {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  font-size: 0.75rem;
+  background: var(--carta-2);
+}
+.g-cella {
+  min-height: 54px;
+}
+.g-cella.chiusa {
+  background: repeating-linear-gradient(135deg, var(--carta-2), var(--carta-2) 6px, transparent 6px, transparent 12px);
+}
+
+/* un periodo compilato: modulo e chapter, materia, istruttore */
+.periodo {
+  display: grid;
+  gap: 1px;
+  align-content: start;
+  width: 100%;
+  height: 100%;
+  padding: 4px 7px 5px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: default;
+  overflow: hidden;
+}
+button.periodo {
+  cursor: pointer;
+}
+@media (hover: hover) {
+  button.periodo:hover {
+    background: var(--evidenzia-tenue);
+  }
+  button.periodo.vuoto:hover {
+    background: var(--carta-2);
+  }
+}
+.periodo.vuoto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--filetto);
+  min-height: 50px;
+}
+.periodo-testa {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.codice-materia {
+  font-family: var(--condensato);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.segno-recupero,
+.periodo-testa .durata {
+  font-size: 0.6875rem;
+}
+.segno-recupero {
+  padding: 0 4px;
+  border: 1px solid var(--inchiostro);
+  font-family: var(--condensato);
+  font-weight: 700;
+}
+.periodo-materia {
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.periodo-istruttore {
+  font-family: var(--condensato);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.periodo.t-meo,
+.periodo.t-esame,
+.periodo.t-sospensione {
+  background: var(--carta-2);
+}
+.periodo.t-sospensione .periodo-materia,
+.periodo.t-meo .periodo-materia {
+  color: var(--inchiostro-2);
+}
+.periodo.t-esame {
+  background: var(--evidenzia-tenue);
+}
+
+/* schermi bassi (portatili 768 px): la settimana deve restare tutta a video */
+@media (min-width: 992px) and (max-height: 860px) {
+  .contenuto {
+    padding: 12px 16px 24px;
+  }
+  .foglio {
+    margin: 12px auto 8px;
+    padding: 14px 18px 16px;
+    outline-offset: 8px;
+  }
+  .intestazione-pagina {
+    margin-bottom: 12px;
+  }
+  .g-cella {
+    min-height: 48px;
+  }
+  .periodo-materia {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+}
+
+@media (min-width: 992px) and (max-height: 800px) {
+  .g-cella {
+    min-height: 42px;
+  }
+  .g-giorno {
+    padding: 4px 8px;
+  }
+  .periodo {
+    padding: 3px 6px 4px;
+  }
+  .periodo-materia {
+    font-size: 0.78rem;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+  }
+  .settimana-testa {
+    margin-bottom: 8px;
+  }
+}
+
+/* cellulare: per ogni giorno solo l'essenziale */
+.settimana-mobile {
+  display: grid;
+  gap: 12px;
+}
+.giorno-mobile {
+  border: 1px solid var(--inchiostro);
+  background: var(--foglio);
+}
+.giorno-mobile > header {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--inchiostro);
+  background: var(--carta-2);
+  font-family: var(--condensato);
+  font-weight: 600;
+}
+.riga-periodo {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  align-items: stretch;
+  border-bottom: 1px solid var(--filetto-chiaro);
+}
+.riga-periodo:last-child {
+  border-bottom: 0;
+}
+.riga-periodo .ora {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  border-right: 1px solid var(--filetto-chiaro);
+}
+.solo-schermo-stretto {
+  display: none;
+}
+@media (max-width: 899px) {
+  .solo-schermo-largo {
+    display: none;
+  }
+  .solo-schermo-stretto {
+    display: grid;
+  }
 }
 
 /* ---------- rapportino presenze ---------- */
@@ -1751,6 +1886,16 @@ mark.evidenziato {
 }
 .riga-assenze strong {
   min-width: 190px;
+}
+
+/* riepilogo dei programmi nel modulo del corso */
+.programmi-corso {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px dashed var(--filetto);
+  background: var(--carta-2);
+  font-size: 0.8125rem;
 }
 
 /* ---------- iscritti e materie ---------- */

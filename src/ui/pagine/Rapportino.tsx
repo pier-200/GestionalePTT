@@ -6,7 +6,7 @@ import { oggiISO, ruoloNelCorso, type CampiPresenza } from '../../dominio/motore
 import { assenteAllaLezione, orariLezioni, orarioStandard } from '../../dominio/presenze';
 import { NOMI_GIORNI, sommaGiorni } from '../../dominio/pianificazione';
 import { materiaDi, programmaTeorico } from '../../dominio/programmi';
-import type { ID } from '../../dominio/tipi';
+import { ETICHETTA_PERIODO, conMateria, type ID } from '../../dominio/tipi';
 import { formatoData, formatoMinuti, frequentatori, lezioniVisibili, nomeUtente } from '../../dominio/viste';
 import { IntestazionePagina, Sezione } from '../componenti/disegno';
 import { useCampoVisibile } from '../componenti/tastiera';
@@ -79,7 +79,7 @@ export function Rapportino() {
   };
   const orarioDi = (id: ID) => orari.get(id) ?? { inizio: '00:00', fine: '00:00' };
   /** Lezioni perse da un frequentatore secondo la compilazione in corso. */
-  const perse = (userId: ID) => delGiorno.filter((l) => !l.recupero && assenteAllaLezione(presenzaDi(userId), orarioDi(l.id)));
+  const perse = (userId: ID) => delGiorno.filter((l) => l.tipo === 'lezione' && assenteAllaLezione(presenzaDi(userId), orarioDi(l.id)));
 
   const assenti = elenco.filter((u) => corrente.valori[u.id]?.stato !== 'presente').length;
   const futuro = giorno > oggiISO();
@@ -272,17 +272,17 @@ export function Rapportino() {
                         {o?.inizio}–{o?.fine}
                       </td>
                       <td>
-                        <strong>{materiaDi(programma, l.materia)?.titolo ?? l.materia}</strong>
-                        {l.recupero && (
+                        <strong>{(conMateria(l.tipo) ? materiaDi(programma, l.materia)?.titolo : ETICHETTA_PERIODO[l.tipo]) ?? l.materia}</strong>
+                        {l.tipo !== 'lezione' && (
                           <Badge ml={6} size="xs" color="inchiostro" variant="light">
-                            recupero
+                            {ETICHETTA_PERIODO[l.tipo].toLowerCase()}
                           </Badge>
                         )}
                       </td>
                       <td>{nomeUtente(dati, l.istruttore_id)}</td>
                       <td className="num">{formatoMinuti(l.minuti)}</td>
                       <td className={mancanti.length ? 'rosso' : 'debole'}>
-                        {l.recupero ? 'non conta assenze' : mancanti.length ? mancanti.map((u) => nomeUtente(dati, u.id)).join(', ') : 'nessuno'}
+                        {l.tipo !== 'lezione' ? 'non conta assenze' : mancanti.length ? mancanti.map((u) => nomeUtente(dati, u.id)).join(', ') : 'nessuno'}
                       </td>
                     </tr>
                   );

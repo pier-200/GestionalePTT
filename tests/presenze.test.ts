@@ -3,7 +3,7 @@ import { datiEsempio } from '../src/dati/esempio';
 import { applica, type Comando } from '../src/dominio/motore';
 import { assenzeDi, limiteAssenze, orarioStandard } from '../src/dominio/presenze';
 import { PROGRAMMI_TEORICI } from '../src/dominio/programmi';
-import type { Lezione, Presenza, Rapportino, StatoPresenza } from '../src/dominio/tipi';
+import type { Lezione, Presenza, Rapportino, StatoPresenza, TipoPeriodo } from '../src/dominio/tipi';
 import { lezioniDi, lezioniVisibili, oreDocenti, presenzeDi, rapportiniDi } from '../src/dominio/viste';
 
 /** Rapportino presenze, conteggio delle assenze, recuperi e validazione del programma. */
@@ -16,7 +16,7 @@ const C2 = 'c-2026-2';
 const M = TEORICO.materie;
 const corso = { ora_inizio: '08:30' };
 
-const lez = (id: string, data: string, ordine: number, minuti: number, materia: string, recupero = false): Lezione => ({
+const lez = (id: string, data: string, ordine: number, minuti: number, materia: string, tipo: TipoPeriodo = 'lezione'): Lezione => ({
   id,
   corso_id: C1,
   data,
@@ -24,7 +24,7 @@ const lez = (id: string, data: string, ordine: number, minuti: number, materia: 
   minuti,
   materia,
   istruttore_id: null,
-  recupero,
+  tipo,
   validata: true,
   validata_da: null,
   validata_il: null,
@@ -79,7 +79,7 @@ describe('assenze', () => {
   });
 
   it('il recupero sana l’assenza della stessa materia e non ne produce di nuove', () => {
-    const conRecupero = [...giornata, lez('r', '2026-09-21', 0, 240, M[0].id, true)];
+    const conRecupero = [...giornata, lez('r', '2026-09-21', 0, 240, M[0].id, 'recupero')];
     const rapportini = [rap('2026-09-14'), rap('2026-09-21')];
     const recuperato = assenzeDi(TEORICO, corso, conRecupero, rapportini, [pres('2026-09-14', 'u1', 'assente'), pres('2026-09-21', 'u1', 'presente')], 'u1');
     expect(recuperato.recuperati).toBe(240);
@@ -105,7 +105,7 @@ describe('assenze', () => {
     const rapportini = rapportiniDi(dati, C1);
     const presenze = presenzeDi(dati, C1);
     expect(rapportini.length).toBeGreaterThan(10);
-    expect(lezioni.filter((l) => l.recupero)).toHaveLength(1);
+    expect(lezioni.filter((l) => l.tipo === 'recupero')).toHaveLength(1);
     expect(assenzeDi(TEORICO, dati.corsi[0], lezioni, rapportini, presenze, 'u-ricci').idoneo).toBe(false);
     expect(assenzeDi(TEORICO, dati.corsi[0], lezioni, rapportini, presenze, 'u-costa').recuperati).toBeGreaterThan(0);
     expect(assenzeDi(TEORICO, dati.corsi[0], lezioni, rapportini, presenze, 'u-romano').minuti).toBe(0);
@@ -167,7 +167,7 @@ describe('motore: rapportino e validazione', () => {
 
   it('il programma si vede solo dopo la validazione e ogni modifica la ritira', () => {
     const giorni = ['2026-10-05'];
-    const lezione = { id: 'l-v', corso_id: C2, data: '2026-10-05', ordine: 0, minuti: 45, materia: M[0].id, istruttore_id: 'u-rinaldi', recupero: false, note: '' };
+    const lezione = { id: 'l-v', corso_id: C2, data: '2026-10-05', ordine: 0, minuti: 45, materia: M[0].id, istruttore_id: 'u-rinaldi', tipo: 'lezione' as const, note: '' };
     const messe = applica(dati, { tipo: 'lezioni.sostituisci', corso_id: C2, giorni, lezioni: [lezione] }, ctx('u-neri')).dati;
     expect(messe.lezioni.find((l) => l.id === 'l-v')!.validata).toBe(false);
     expect(lezioniVisibili(messe, C2, 'trainee').some((l) => l.id === 'l-v')).toBe(false);

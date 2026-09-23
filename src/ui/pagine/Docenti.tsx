@@ -51,7 +51,7 @@ export function Docenti() {
         </div>
         <div className="c-periodo">
           <span className="etichetta">Ore di recupero</span>
-          <div className="valore codice">{ore(lezioni.filter((l) => l.recupero).reduce((s, l) => s + l.minuti, 0))}</div>
+          <div className="valore codice">{ore(lezioni.filter((l) => l.tipo === 'recupero').reduce((s, l) => s + l.minuti, 0))}</div>
         </div>
         <div className="c-2 c-luogo">
           <span className="etichetta">Programma</span>

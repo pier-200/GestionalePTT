@@ -180,6 +180,8 @@ const corso = (id: string, codice: string, nome: string, extra: Partial<Corso>):
   id,
   codice,
   nome,
+  mds: 'CH-47F',
+  categoria: 'B1.3',
   programma_teorico: TEORICO.id,
   programma_pratico: PRATICO.id,
   data_inizio: INIZIO,
@@ -208,7 +210,7 @@ function lezioniEsempio(corsoId: string, inizio: string, settimane: number, doce
         minuti: p.minuti,
         materia: p.materia,
         istruttore_id: p.istruttore_id,
-        recupero: false,
+        tipo: 'lezione',
         validata: false,
         validata_da: null,
         validata_il: null,
@@ -335,6 +337,14 @@ export function datiEsempio(): Dati {
   const lezioni1 = lezioniEsempio(CORSO_1, INIZIO, 3, ['u-rinaldi', 'u-colombo', 'u-neri'], g);
   for (const l of lezioni1) Object.assign(l, { validata: true, validata_da: 'u-neri', validata_il: `${l.data}T07:00:00.000Z` });
   const giorni1 = [...new Set(lezioni1.map((l) => l.data))].sort();
+  // qualche periodo non didattico, come capita nella realtà
+  const segna = (data: string, ordine: number, tipo: Lezione['tipo']) => {
+    const l = lezioni1.find((x) => x.data === data && x.ordine === ordine);
+    if (l) Object.assign(l, { tipo, materia: '', istruttore_id: tipo === 'esame' ? l.istruttore_id : null, note: '' });
+  };
+  segna(giorni1[5], 5, 'meo');
+  segna(giorni1[8], 0, 'sospensione');
+  segna(giorni1.at(-1)!, 0, 'esame');
   lezioni1.push({
     id: 'l-recupero-1',
     corso_id: CORSO_1,
@@ -343,7 +353,7 @@ export function datiEsempio(): Dati {
     minuti: 120,
     materia: lezioni1.find((l) => l.data === giorni1[3])!.materia,
     istruttore_id: 'u-rinaldi',
-    recupero: true,
+    tipo: 'recupero',
     validata: true,
     validata_da: 'u-neri',
     validata_il: '2026-09-16T07:00:00.000Z',

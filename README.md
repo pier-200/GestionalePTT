@@ -19,7 +19,17 @@ Specifica iniziale: [PROGETTO_Logbook_PTT.md](PROGETTO_Logbook_PTT.md).
 
 ## Corsi, ruoli e permessi
 
-Il Training Manager crea i corsi, sceglie i programmi (teorico e/o pratico) e vi iscrive le persone.
+Il Training Manager crea i corsi e vi iscrive le persone. Ogni corso ha **nome, codice, MDS e categoria**: i programmi
+seguono da soli.
+
+| MDS | Categorie | Programmi |
+|---|---|---|
+| CH-47F | B1.3, B2, C | le categorie B hanno teorico + pratico, la C solo il teorico |
+| UC-228 | B1.1, B2, C | idem |
+| VC-180A | B1.1, B2, C | idem |
+
+Caricati oggi: **CH-47F B1.3** (teorico e pratico). Per gli altri bastano i due Excel (vedi «Programmi di corso»):
+finché mancano, il corso si crea lo stesso e le pagine lo segnalano.
 
 | | Frequentatore | Istruttore | Direttore del corso | Training Manager |
 |---|---|---|---|---|
@@ -36,11 +46,13 @@ Il Training Manager crea i corsi, sceglie i programmi (teorico e/o pratico) e vi
 
 - Programma dal file ufficiale (`MTT_B1.3_CH-47F.xlsx`): **51 materie in 8 moduli, 219 ore**. Ogni materia dura i
   «Tuition Min.» del programma e copre uno o più chapter.
-- **Programma settimanale**: si sceglie la settimana e si preme «Genera»: l'app riempie i giorni liberi seguendo
-  l'ordine del programma, con un massimo di 6 ore dal lunedì al giovedì e 3 il venerdì (modificabile per corso).
-  Una materia lunga si spezza su più giorni; per ogni lezione si sceglie l'istruttore tra quelli **abilitati** a quella materia.
-- **Periodi componibili**: ogni lezione si aggiunge, si sposta, si accorcia o si allunga a quarti d'ora (15, 30, 45
-  minuti e multipli), con «Periodo» nella giornata; il segno «Recupero» marca le lezioni di recupero.
+- **Programma settimanale**: «Genera» riempie i periodi ancora vuoti seguendo l'ordine del programma; una materia
+  lunga si spezza su più periodi e l'istruttore si sceglie fra quelli **abilitati** a quella materia.
+- **Griglia dei periodi**: la giornata ha sempre **6 periodi dal lunedì al giovedì e 3 il venerdì**; si compilano
+  toccando il periodo. Ogni periodo può essere una lezione, una **lezione di recupero**, **Mantenimento Efficienza
+  Operativa**, una **Sospensione** o un **Esame teorico**; la durata si cambia a quarti d'ora.
+- **A schermo**: sul PC la settimana intera sta in una schermata (periodo, modulo · chapter, materia, istruttore);
+  sul cellulare ogni giornata mostra solo orario, materia e istruttore.
 - **Validazione**: la settimana salvata resta privata finché il direttore o il TM premono «Valida»; solo allora i
   frequentatori la vedono. Ogni modifica successiva ritira la validazione.
 - **Conto a scalare**: le ore che restano compaiono sotto ogni lezione mentre si compone la settimana, nella barra in
@@ -80,8 +92,8 @@ py -3.11 scripts/import_catalogo.py "<PTR.xlsx>" <id-programma>        # parte p
 py -3.11 scripts/import_programma_mtt.py "<MTT.xlsx>" <id-programma>   # parte teorica
 ```
 
-Il file generato entra da solo nell'elenco dei programmi disponibili: per un corso diverso (altro aeromobile o altra
-categoria) bastano i due Excel.
+Ogni file porta con sé mezzo e categoria: appena è in `src/dati/programmi/` i corsi di quel MDS e di quella categoria
+lo usano da soli (le categorie C solo il teorico).
 
 ## Stampa del Compliance Report
 

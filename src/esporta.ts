@@ -2,7 +2,7 @@ import { chapterMateria, indice, materiaDi, programmaPratico, programmaTeorico, 
 import type { Report, RigaReport } from './dominio/compliance';
 import { oggiISO, type CampiLezione } from './dominio/motore';
 import { NOMI_GIORNI, giorniSettimana, orarioLezione } from './dominio/pianificazione';
-import type { Corso, Dati, Registrazione, Utente } from './dominio/tipi';
+import { ETICHETTA_PERIODO, conMateria, type Corso, type Dati, type Registrazione, type Utente } from './dominio/tipi';
 import { esecuzione, formatoData, frequentatori, istruttoriDi, nomeIstruttore, nomeUtente, situazione } from './dominio/viste';
 
 /** Esportazioni (PROGETTO_Logbook_PTT.md §5): Excel del singolo frequentatore, Excel complessivo, CSV. */
@@ -206,9 +206,9 @@ export async function esportaSettimana(dati: Dati, corso: Corso, lunedi: string,
       return;
     }
     for (const l of delGiorno) {
-      const materia = materiaDi(programma, l.materia);
+      const materia = conMateria(l.tipo) ? materiaDi(programma, l.materia) : undefined;
       const orario = orarioLezione(corso, delGiorno, l.ordine);
-      totale += l.recupero ? 0 : l.minuti;
+      totale += l.tipo === 'lezione' ? l.minuti : 0;
       righe.push([
         NOMI_GIORNI[i],
         data(giorno),
@@ -216,10 +216,10 @@ export async function esportaSettimana(dati: Dati, corso: Corso, lunedi: string,
         orario.fine,
         l.minuti,
         materia ? `M${materia.modulo}` : null,
-        materia?.titolo ?? l.materia,
+        materia?.titolo ?? ETICHETTA_PERIODO[l.tipo],
         materia ? chapterMateria(materia) : null,
         nomeUtente(dati, l.istruttore_id),
-        l.recupero ? 'Recupero' : 'Lezione',
+        ETICHETTA_PERIODO[l.tipo],
         l.note || null,
       ]);
     }

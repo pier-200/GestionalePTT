@@ -73,7 +73,7 @@ describe('pianificazione', () => {
     expect(generaSettimana(TEORICO, lezioni, lunedi)).toEqual([]);
     const dopo = generaSettimana(TEORICO, lezioni, '2026-09-28');
     expect(dopo.length).toBeGreaterThan(0);
-    expect(statoTeorico(TEORICO, [...lezioni, ...dopo.map((p, i) => ({ ...p, id: String(i), corso_id: C2, recupero: false, validata: false, validata_da: null, validata_il: null, note: '', creato_il: '', modificato_il: '', modificato_da: null }))]).totale.pianificati).toBe(
+    expect(statoTeorico(TEORICO, [...lezioni, ...dopo.map((p, i) => ({ ...p, id: String(i), corso_id: C2, tipo: 'lezione' as const, validata: false, validata_da: null, validata_il: null, note: '', creato_il: '', modificato_il: '', modificato_da: null }))]).totale.pianificati).toBe(
       stato.totale.pianificati + dopo.reduce((s, p) => s + p.minuti, 0),
     );
   });
@@ -115,7 +115,7 @@ describe('motore', () => {
     expect(() => applica(off.dati, reg('u-gallo'), ctx('u-gallo'))).toThrow(/non abilitato/);
     const corso: Comando = {
       tipo: 'corso.salva',
-      corso: { id: 'c-x', codice: 'T1-2027/1', nome: 'Nuovo corso', programma_teorico: TEORICO.id, programma_pratico: null, data_inizio: null, data_fine: null, maintenance_organization: '', location: '', ora_inizio: '08:30', minuti_giorno: [360, 360, 360, 360, 180], attivo: true },
+      corso: { id: 'c-x', codice: 'T1-2027/1', nome: 'Nuovo corso', mds: 'CH-47F', categoria: 'B1.3', data_inizio: null, data_fine: null, maintenance_organization: '', location: '', ora_inizio: '08:30', minuti_giorno: [360, 360, 360, 360, 180], attivo: true },
     };
     expect(() => applica(dati, corso, ctx('u-neri'))).toThrow(/Training Manager/);
     expect(applica(dati, corso, ctx('u-tm')).dati.corsi).toHaveLength(3);
@@ -123,7 +123,7 @@ describe('motore', () => {
 
   it('il direttore prepara il programma del suo corso, l’istruttore no', () => {
     const giorni = ['2026-10-05'];
-    const lezioni = [{ id: 'l-x', corso_id: C2, data: '2026-10-05', ordine: 0, minuti: 120, materia: TEORICO.materie[0].id, istruttore_id: 'u-rinaldi', recupero: false, note: '' }];
+    const lezioni = [{ id: 'l-x', corso_id: C2, data: '2026-10-05', ordine: 0, minuti: 120, materia: TEORICO.materie[0].id, istruttore_id: 'u-rinaldi', tipo: 'lezione' as const, note: '' }];
     const cmd: Comando = { tipo: 'lezioni.sostituisci', corso_id: C2, giorni, lezioni };
     expect(applica(dati, cmd, ctx('u-neri')).dati.lezioni.some((l) => l.id === 'l-x')).toBe(true);
     expect(() => applica(dati, cmd, ctx('u-rinaldi'))).toThrow(/Training Manager|permessi/);

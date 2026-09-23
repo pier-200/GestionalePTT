@@ -1,4 +1,4 @@
-import { orarioLezione } from './pianificazione';
+import { indiceGiorno, orarioLezione } from './pianificazione';
 import { materiaDi, type Materia, type ProgrammaTeorico } from './programmi';
 import type { Corso, ID, Lezione, Presenza, Rapportino } from './tipi';
 
@@ -20,8 +20,7 @@ export const ORARIO_STANDARD: readonly (readonly [string, string])[] = [
 /** Quota di assenze che rende «Non idoneo» all'esame teorico (sul totale delle ore del corso). */
 export const SOGLIA_ASSENZE = 0.1;
 
-/** 0 = lunedì … 6 = domenica. */
-export const indiceGiorno = (data: string) => (new Date(`${data}T00:00:00Z`).getUTCDay() + 6) % 7;
+export { indiceGiorno };
 
 export const orarioStandard = (data: string) => ORARIO_STANDARD[indiceGiorno(data)] ?? ORARIO_STANDARD[0];
 
@@ -108,11 +107,13 @@ export function assenzeDi(
     const orario = orari.get(l.id) ?? { inizio: corso.ora_inizio, fine: corso.ora_inizio };
     const presenza = presenzaDi(mie, l.data, userId);
     const assente = assenteAllaLezione(presenza, orario);
-    if (l.recupero) {
+    if (l.tipo === 'recupero') {
       // il recupero vale solo per chi c'era; chi manca non prende un'assenza in più
       if (!assente) recuperi.set(l.materia, (recuperi.get(l.materia) ?? 0) + l.minuti);
       continue;
     }
+    // MEO, sospensioni ed esami occupano un periodo ma non sono programma: non generano assenze
+    if (l.tipo !== 'lezione') continue;
     if (assente) {
       assenze.push({
         lezione: l,

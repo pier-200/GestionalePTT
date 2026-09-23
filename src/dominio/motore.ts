@@ -1,6 +1,7 @@
 import { ErroreApp } from './errori';
-import { indice, programmaPratico, programmaTeorico } from './programmi';
-import type { Anagrafica, Corso, Dati, DatiTraining, ID, Iscrizione, Istruttore, Lezione, Presenza, Rapportino, Registrazione, Ruolo, RuoloCorso, StatoPresenza, TipoEsecuzione, Utente } from './tipi';
+import { mdsDi, indice, programmaPratico, programmaTeorico, programmiPer } from './programmi';
+import { indiceGiorno, periodiDelGiorno } from './pianificazione';
+import { conMateria, type Anagrafica, type Corso, type Dati, type DatiTraining, type ID, type Iscrizione, type Istruttore, type Lezione, type Presenza, type Rapportino, type Registrazione, type Ruolo, type RuoloCorso, type StatoPresenza, type TipoEsecuzione, type TipoPeriodo, type Utente } from './tipi';
 
 /**
  * Comandi di modifica dei dati, con permessi e validazioni. Il motore è eseguito
@@ -16,11 +17,12 @@ export type CampiAnagrafica = Omit<Anagrafica, 'updated_at' | 'updated_by'>;
 export type CampiTraining = Omit<DatiTraining, 'corso_id' | 'user_id' | 'updated_at' | 'updated_by'>;
 export type CampiIstruttore = Pick<Istruttore, 'id' | 'grado' | 'nome' | 'cognome'>;
 export type CampiUtente = Pick<Utente, 'id' | 'username' | 'ruolo' | 'nome' | 'istruttore_id'>;
+/** I programmi non si scelgono a mano: seguono mezzo e categoria. */
 export type CampiCorso = Pick<
   Corso,
-  'id' | 'codice' | 'nome' | 'programma_teorico' | 'programma_pratico' | 'data_inizio' | 'data_fine' | 'maintenance_organization' | 'location' | 'ora_inizio' | 'minuti_giorno' | 'attivo'
+  'id' | 'codice' | 'nome' | 'mds' | 'categoria' | 'data_inizio' | 'data_fine' | 'maintenance_organization' | 'location' | 'ora_inizio' | 'minuti_giorno' | 'attivo'
 >;
-export type CampiLezione = Pick<Lezione, 'id' | 'corso_id' | 'data' | 'ordine' | 'minuti' | 'materia' | 'istruttore_id' | 'recupero' | 'note'>;
+export type CampiLezione = Pick<Lezione, 'id' | 'corso_id' | 'data' | 'ordine' | 'minuti' | 'materia' | 'istruttore_id' | 'tipo' | 'note'>;
 export type CampiPresenza = Pick<Presenza, 'id' | 'user_id' | 'stato' | 'dalle' | 'alle' | 'motivo'>;
 
 export type Comando =
@@ -62,6 +64,7 @@ export interface Esito {
 export const RE_USERNAME = /^[a-z0-9][a-z0-9._-]{2,39}$/;
 export const RE_DATA = /^\d{4}-\d{2}-\d{2}$/;
 export const TIPI_ESECUZIONE: TipoEsecuzione[] = ['AC', 'SIM', 'CLA'];
+export const TIPI_PERIODO: TipoPeriodo[] = ['lezione', 'recupero', 'meo', 'sospensione', 'esame'];
 
 export const oggiISO = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -177,9 +180,11 @@ export function applica(dati: Dati, comando: Comando, ctx: Contesto): Esito {
       const data_inizio = v.data('data_inizio', 'Data di inizio', c.data_inizio, false);
       const data_fine = v.data('data_fine', 'Data di fine', c.data_fine, false);
       if (data_inizio && data_fine && data_fine < data_inizio) v.errori.data_fine = 'La data di fine precede la data di inizio';
-      if (c.programma_teorico && !programmaTeorico(c.programma_teorico)) v.errori.programma_teorico = 'Programma teorico sconosciuto';
-      if (c.programma_pratico && !programmaPratico(c.programma_pratico)) v.errori.programma_pratico = 'Programma pratico sconosciuto';
-      if (!c.programma_teorico && !c.programma_pratico) v.errori.programma_teorico = 'Indicare almeno un programma (teorico o pratico)';
+      const mezzo = mdsDi(c.mds);
+      if (!mezzo) v.errori.mds = 'Indicare il mezzo (MDS)';
+      else if (!mezzo.categorie.includes(c.categoria)) v.errori.categoria = `Il ${mezzo.codice} non prevede la categoria "${c.categoria}"`;
+      // i programmi seguono mezzo e categoria (le categorie C hanno solo la parte teorica)
+      const attesi = programmiPer(c.mds, c.categoria);
       if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(c.ora_inizio)) v.errori.ora_inizio = 'Ora di inizio non valida (es. 08:30)';
       const minuti_giorno = (c.minuti_giorno ?? []).slice(0, 5).map((x) => Math.max(0, Math.min(600, Math.round(Number(x) / 60) * 60)));
       if (minuti_giorno.length !== 5) v.errori.minuti_giorno = 'Indicare i minuti di lezione per i cinque giorni';
@@ -189,8 +194,10 @@ export function applica(dati: Dati, comando: Comando, ctx: Contesto): Esito {
         id: c.id,
         codice,
         nome,
-        programma_teorico: c.programma_teorico,
-        programma_pratico: c.programma_pratico,
+        mds: c.mds,
+        categoria: c.categoria,
+        programma_teorico: attesi.teorico?.id ?? null,
+        programma_pratico: attesi.pratico?.id ?? null,
         data_inizio,
         data_fine,
         maintenance_organization: v.testo('maintenance_organization', 'Maintenance Organisation', c.maintenance_organization, 200, false),
@@ -328,7 +335,9 @@ export function applica(dati: Dati, comando: Comando, ctx: Contesto): Esito {
       if (giorni.size !== comando.giorni.length) v.errori.giorni = 'Giorni non validi';
       for (const l of comando.lezioni) {
         if (!giorni.has(l.data)) v.errori.lezioni = 'Una lezione cade fuori dai giorni indicati';
-        if (!p.materie.some((m) => m.id === l.materia)) v.errori.materia = 'Materia non presente nel programma del corso';
+        if (!TIPI_PERIODO.includes(l.tipo)) v.errori.tipo = 'Tipo di periodo non valido';
+        else if (conMateria(l.tipo) && !p.materie.some((m) => m.id === l.materia)) v.errori.materia = 'Materia non presente nel programma del corso';
+        if (l.ordine < 0 || l.ordine >= periodiDelGiorno(c.minuti_giorno, indiceGiorno(l.data))) v.errori.ordine = 'Periodo fuori dalla giornata';
         // i periodi si compongono a quarti d'ora: 15, 30, 45 minuti e multipli
         if (!Number.isInteger(l.minuti) || l.minuti < 15 || l.minuti > 600 || l.minuti % 15 !== 0) v.errori.minuti = 'Durata della lezione non valida: quarti d’ora da 15 a 600 minuti';
         if (l.istruttore_id && !iscrittoCome(comando.corso_id, l.istruttore_id, 'instructor') && !iscrittoCome(comando.corso_id, l.istruttore_id, 'direttore')) {
@@ -340,7 +349,7 @@ export function applica(dati: Dati, comando: Comando, ctx: Contesto): Esito {
       // dopo ogni modifica la settimana torna da validare: i frequentatori vedono solo i programmi validati
       const nuove: Lezione[] = comando.lezioni.map((l) => ({
         ...l,
-        recupero: l.recupero ?? false,
+        materia: conMateria(l.tipo) ? l.materia : '',
         validata: false,
         validata_da: null,
         validata_il: null,

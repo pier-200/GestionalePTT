@@ -4,7 +4,7 @@ import { useMediaQuery } from '@mantine/hooks';
 import { IconArrowRight, IconPlus } from '@tabler/icons-react';
 import { nuovoUuid } from '../../backend/github/crittografia';
 import { statoTeorico } from '../../dominio/pianificazione';
-import { PROGRAMMI_PRATICI, PROGRAMMI_TEORICI, programmaPratico, programmaTeorico } from '../../dominio/programmi';
+import { MDS, mdsDi, programmaPratico, programmaTeorico, programmiPer, soloTeorica } from '../../dominio/programmi';
 import { corsiDi, ruoloNelCorso, type CampiCorso } from '../../dominio/motore';
 import type { Corso } from '../../dominio/tipi';
 import { formatoData, frequentatori, iscritti, lezioniVisibili, ore, situazione } from '../../dominio/viste';
@@ -48,7 +48,9 @@ export function Corsi() {
             return (
               <article key={c.id} className={`scheda-corso ${c.attivo ? '' : 'chiuso'}`}>
                 <header>
-                  <span className="etichetta">{c.codice}</span>
+                  <span className="etichetta">
+                    {c.codice} · {c.mds} {c.categoria}
+                  </span>
                   <h2>{c.nome}</h2>
                   <p className="debole">
                     {formatoData(c.data_inizio)} – {formatoData(c.data_fine)} · {c.location || 'sede da definire'}
@@ -128,8 +130,8 @@ function FormCorso({ esistente, chiudi }: { esistente: Corso | null; chiudi: (id
       id: nuovoUuid(),
       codice: '',
       nome: '',
-      programma_teorico: PROGRAMMI_TEORICI[0]?.id ?? null,
-      programma_pratico: PROGRAMMI_PRATICI[0]?.id ?? null,
+      mds: MDS[0].codice,
+      categoria: MDS[0].categorie[0],
       data_inizio: null,
       data_fine: null,
       maintenance_organization: '',
@@ -154,22 +156,46 @@ function FormCorso({ esistente, chiudi }: { esistente: Corso | null; chiudi: (id
       <Stack gap="md">
         <TextInput label="Codice" description="Come compare negli elenchi, es. T1-2026/1" value={v.codice} onChange={(e) => setV({ ...v, codice: e.currentTarget.value })} required />
         <TextInput label="Nome del corso" value={v.nome} onChange={(e) => setV({ ...v, nome: e.currentTarget.value })} required />
-        <Select
-          label="Programma teorico (MTT)"
-          clearable
-          value={v.programma_teorico}
-          onChange={(x) => setV({ ...v, programma_teorico: x })}
-          data={PROGRAMMI_TEORICI.map((p) => ({ value: p.id, label: p.nome }))}
-          comboboxProps={{ withinPortal: true }}
-        />
-        <Select
-          label="Programma pratico (PTT)"
-          clearable
-          value={v.programma_pratico}
-          onChange={(x) => setV({ ...v, programma_pratico: x })}
-          data={PROGRAMMI_PRATICI.map((p) => ({ value: p.id, label: p.nome }))}
-          comboboxProps={{ withinPortal: true }}
-        />
+        <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="sm">
+          <Select
+            label="MDS"
+            description="Il mezzo del corso"
+            value={v.mds}
+            onChange={(x) => {
+              const mezzo = mdsDi(x) ?? MDS[0];
+              setV({ ...v, mds: mezzo.codice, categoria: mezzo.categorie.includes(v.categoria) ? v.categoria : mezzo.categorie[0] });
+            }}
+            data={MDS.map((m) => ({ value: m.codice, label: m.nome }))}
+            comboboxProps={{ withinPortal: true }}
+            allowDeselect={false}
+          />
+          <Select
+            label="Categoria"
+            description={soloTeorica(v.categoria) ? 'Solo parte teorica' : 'Teorica e pratica'}
+            value={v.categoria}
+            onChange={(x) => x && setV({ ...v, categoria: x })}
+            data={(mdsDi(v.mds)?.categorie ?? []).map((c) => ({ value: c, label: c }))}
+            comboboxProps={{ withinPortal: true }}
+            allowDeselect={false}
+          />
+        </SimpleGrid>
+        <div className="programmi-corso">
+          <span className="etichetta">Programmi previsti</span>
+          {(() => {
+            const p = programmiPer(v.mds, v.categoria);
+            const riga = (titolo: string, nome: string | undefined, previsto: boolean) => (
+              <div key={titolo} className={nome ? 'si' : previsto ? 'rosso' : 'debole'}>
+                {titolo}: {nome ?? (previsto ? 'da caricare' : 'non previsto')}
+              </div>
+            );
+            return (
+              <>
+                {riga('Teorico (MTT)', p.teorico?.nome, true)}
+                {riga('Pratico (PTT)', p.pratico?.nome, !soloTeorica(v.categoria))}
+              </>
+            );
+          })()}
+        </div>
         <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="sm">
           <TextInput type="date" label="Data di inizio" value={v.data_inizio ?? ''} onChange={(e) => setV({ ...v, data_inizio: e.currentTarget.value || null })} />
           <TextInput type="date" label="Data di fine" value={v.data_fine ?? ''} onChange={(e) => setV({ ...v, data_fine: e.currentTarget.value || null })} />

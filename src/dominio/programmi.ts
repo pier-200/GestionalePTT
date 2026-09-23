@@ -74,6 +74,36 @@ export const PROGRAMMI_TEORICI: ProgrammaTeorico[] = [mttCh47fB13 as ProgrammaTe
 export const programmaPratico = (id: string | null | undefined) => PROGRAMMI_PRATICI.find((p) => p.id === id);
 export const programmaTeorico = (id: string | null | undefined) => PROGRAMMI_TEORICI.find((p) => p.id === id);
 
+// --- MDS e categorie --------------------------------------------------------
+
+export interface Mds {
+  codice: string;
+  nome: string;
+  /** Categorie di licenza previste per quel mezzo. */
+  categorie: string[];
+}
+
+/** Mezzi (MDS) e categorie per cui si tengono i corsi. */
+export const MDS: Mds[] = [
+  { codice: 'CH-47F', nome: 'CH-47F', categorie: ['B1.3', 'B2', 'C'] },
+  { codice: 'UC-228', nome: 'UC-228', categorie: ['B1.1', 'B2', 'C'] },
+  { codice: 'VC-180A', nome: 'VC-180A', categorie: ['B1.1', 'B2', 'C'] },
+];
+
+export const mdsDi = (codice: string | null | undefined) => MDS.find((m) => m.codice === codice);
+
+/** Le categorie C prevedono solo la parte teorica; le B anche quella pratica. */
+export const soloTeorica = (categoria: string | null | undefined) => (categoria ?? '').trim().toUpperCase().startsWith('C');
+
+/** Programmi disponibili per un mezzo e una categoria (mancano finché non si importa l'Excel). */
+export function programmiPer(mds: string | null | undefined, categoria: string | null | undefined) {
+  const uguale = (p: { aeromobile: string; categoria: string }) => p.aeromobile === mds && p.categoria === categoria;
+  return {
+    teorico: PROGRAMMI_TEORICI.find(uguale),
+    pratico: soloTeorica(categoria) ? undefined : PROGRAMMI_PRATICI.find(uguale),
+  };
+}
+
 interface Indice {
   taskPerId: Map<number, Task>;
   chapterPerCodice: Map<string, Chapter>;

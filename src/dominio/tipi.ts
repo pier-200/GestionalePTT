@@ -19,11 +19,15 @@ export interface Utente {
   updated_at: string;
 }
 
-/** Un corso: parte teorica (MTT) e/o parte pratica (PTT), ciascuna con il suo programma. */
+/** Un corso: mezzo (MDS), categoria, parte teorica (MTT) e, per le categorie B, parte pratica (PTT). */
 export interface Corso {
   id: ID;
   codice: string;
   nome: string;
+  /** Mezzo: CH-47F, UC-228, VC-180A… */
+  mds: string;
+  /** Categoria della licenza: B1.1, B1.3, B2, C. */
+  categoria: string;
   programma_teorico: string | null;
   programma_pratico: string | null;
   data_inizio: string | null;
@@ -109,8 +113,8 @@ export interface Lezione {
   minuti: number;
   materia: string;
   istruttore_id: ID | null;
-  /** Lezione di recupero: sana le assenze della stessa materia e non ne produce di nuove. */
-  recupero: boolean;
+  /** Lezione, recupero oppure un periodo non didattico (MEO, sospensione, esame). */
+  tipo: TipoPeriodo;
   /** Il programma diventa visibile ai frequentatori solo dopo la validazione. */
   validata: boolean;
   validata_da: ID | null;
@@ -122,6 +126,29 @@ export interface Lezione {
 }
 
 export type StatoPresenza = 'presente' | 'parziale' | 'assente';
+
+/** Cosa si svolge in un periodo del programma settimanale. */
+export type TipoPeriodo = 'lezione' | 'recupero' | 'meo' | 'sospensione' | 'esame';
+
+export const ETICHETTA_PERIODO: Record<TipoPeriodo, string> = {
+  lezione: 'Lezione',
+  recupero: 'Lezione di recupero',
+  meo: 'Mantenimento Efficienza Operativa',
+  sospensione: 'Sospensione',
+  esame: 'Esame teorico',
+};
+
+/** Sigla mostrata nella griglia della settimana. */
+export const SIGLA_PERIODO: Record<TipoPeriodo, string> = {
+  lezione: '',
+  recupero: 'REC',
+  meo: 'MEO',
+  sospensione: 'SOSP',
+  esame: 'ESAME',
+};
+
+/** Solo lezioni e recuperi hanno una materia del programma. */
+export const conMateria = (tipo: TipoPeriodo) => tipo === 'lezione' || tipo === 'recupero';
 
 /** Rapportino presenze di una giornata di corso: lo compilano i frequentatori, lo valida chi guida. */
 export interface Rapportino {

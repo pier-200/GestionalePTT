@@ -40,6 +40,9 @@ create table if not exists public.corsi (
   id uuid primary key default gen_random_uuid(),
   codice text not null unique check (length(trim(codice)) between 1 and 30),
   nome text not null check (length(trim(nome)) between 1 and 120),
+  -- mezzo e categoria: da questi dipendono i programmi, che stanno nell'applicazione
+  mds text not null default '' check (length(mds) <= 30),
+  categoria text not null default '' check (length(categoria) <= 10),
   programma_teorico text,
   programma_pratico text,
   data_inizio date,
@@ -51,10 +54,12 @@ create table if not exists public.corsi (
   attivo boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  check (programma_teorico is not null or programma_pratico is not null),
   check (data_fine is null or data_inizio is null or data_fine >= data_inizio),
   check (array_length(minuti_giorno, 1) = 5)
 );
+alter table public.corsi add column if not exists mds text not null default '';
+alter table public.corsi add column if not exists categoria text not null default '';
+alter table public.corsi drop constraint if exists corsi_check;
 
 create table if not exists public.iscrizioni (
   id uuid primary key default gen_random_uuid(),
@@ -121,7 +126,8 @@ create table if not exists public.lezioni (
   -- id della materia nel programma teorico del corso
   materia text not null,
   istruttore_id uuid references public.profili on delete set null,
-  recupero boolean not null default false,
+  -- lezione, recupero oppure periodo non didattico
+  tipo text not null default 'lezione' check (tipo in ('lezione', 'recupero', 'meo', 'sospensione', 'esame')),
   -- il programma è visibile ai frequentatori solo dopo la validazione
   validata boolean not null default false,
   validata_da uuid,
@@ -134,7 +140,11 @@ create table if not exists public.lezioni (
 );
 create index if not exists lezioni_corso on public.lezioni (corso_id, data);
 -- aggiornamento di installazioni precedenti
-alter table public.lezioni add column if not exists recupero boolean not null default false;
+alter table public.lezioni add column if not exists tipo text not null default 'lezione';
+update public.lezioni set tipo = 'recupero' where tipo = 'lezione' and coalesce((to_jsonb(lezioni) ->> 'recupero')::boolean, false);
+alter table public.lezioni drop column if exists recupero;
+alter table public.lezioni drop constraint if exists lezioni_tipo_check;
+alter table public.lezioni add constraint lezioni_tipo_check check (tipo in ('lezione', 'recupero', 'meo', 'sospensione', 'esame'));
 alter table public.lezioni add column if not exists validata boolean not null default false;
 alter table public.lezioni add column if not exists validata_da uuid;
 alter table public.lezioni add column if not exists validata_il timestamptz;
