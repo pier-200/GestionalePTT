@@ -1,7 +1,7 @@
 import { generaSettimana, lunediDi, sommaGiorni } from '../dominio/pianificazione';
 import { minimoMeta } from '../dominio/compliance';
 import { PROGRAMMI_PRATICI, PROGRAMMI_TEORICI, type Task } from '../dominio/programmi';
-import type { Abilitazione, Anagrafica, Corso, Dati, DatiTraining, Iscrizione, Istruttore, Lezione, Registrazione, TipoEsecuzione, Utente } from '../dominio/tipi';
+import type { Abilitazione, Anagrafica, Corso, Dati, DatiTraining, Iscrizione, Istruttore, Lezione, Presenza, Rapportino, Registrazione, StatoPresenza, TipoEsecuzione, Utente } from '../dominio/tipi';
 
 /**
  * Situazione esempio SINTETICA per la modalità dimostrativa: persone, matricole e
@@ -208,6 +208,10 @@ function lezioniEsempio(corsoId: string, inizio: string, settimane: number, doce
         minuti: p.minuti,
         materia: p.materia,
         istruttore_id: p.istruttore_id,
+        recupero: false,
+        validata: false,
+        validata_da: null,
+        validata_il: null,
         note: '',
         creato_il: ISTANTE_BASE,
         modificato_il: ISTANTE_BASE,
@@ -217,6 +221,49 @@ function lezioniEsempio(corsoId: string, inizio: string, settimane: number, doce
     lunedi = sommaGiorni(lunedi, 7);
   }
   return lezioni;
+}
+
+/** Assenze inventate: chi è più indietro con la pratica salta qualche giornata. */
+const REGOLE_PRESENZA: Record<string, (i: number) => StatoPresenza> = {
+  'u-ricci': (i) => (i % 4 === 1 || i % 13 === 8 ? 'assente' : 'presente'),
+  'u-costa': (i) => (i % 9 === 3 ? 'assente' : i % 7 === 2 ? 'parziale' : 'presente'),
+  'u-gallo': (i) => (i % 11 === 5 ? 'parziale' : 'presente'),
+  'u-esposito': (i) => (i % 5 === 2 ? 'parziale' : 'presente'),
+};
+const MOTIVI = ['Servizio di guardia', 'Visita medica', 'Permesso breve', 'Missione'];
+
+/** Rapportini presenze delle giornate già concluse, con le ultime ancora da validare. */
+function rapportiniEsempio(corsoId: string, lezioni: readonly Lezione[], allievi: readonly string[], fino: string, validatiFinoA: string) {
+  const rapportini: Rapportino[] = [];
+  const presenze: Presenza[] = [];
+  const giorni = [...new Set(lezioni.filter((l) => l.corso_id === corsoId && l.data <= fino).map((l) => l.data))].sort();
+  giorni.forEach((data, i) => {
+    const validato = data <= validatiFinoA;
+    rapportini.push({
+      id: `rp-${corsoId}-${data}`,
+      corso_id: corsoId,
+      data,
+      note: '',
+      compilato_da: allievi[i % allievi.length],
+      compilato_il: `${data}T16:40:00.000Z`,
+      validato_da: validato ? 'u-neri' : null,
+      validato_il: validato ? `${data}T17:15:00.000Z` : null,
+    });
+    for (const user_id of allievi) {
+      const stato = REGOLE_PRESENZA[user_id]?.(i) ?? 'presente';
+      presenze.push({
+        id: `pr-${corsoId}-${data}-${user_id}`,
+        corso_id: corsoId,
+        data,
+        user_id,
+        stato,
+        dalle: stato === 'parziale' ? '08:00' : null,
+        alle: stato === 'parziale' ? '12:30' : null,
+        motivo: stato === 'presente' ? '' : MOTIVI[i % MOTIVI.length],
+      });
+    }
+  });
+  return { rapportini, presenze };
 }
 
 export function datiEsempio(): Dati {
@@ -284,6 +331,35 @@ export function datiEsempio(): Dati {
     }
   });
 
+  // primo corso: teoria conclusa e validata, con una lezione di recupero a settembre
+  const lezioni1 = lezioniEsempio(CORSO_1, INIZIO, 3, ['u-rinaldi', 'u-colombo', 'u-neri'], g);
+  for (const l of lezioni1) Object.assign(l, { validata: true, validata_da: 'u-neri', validata_il: `${l.data}T07:00:00.000Z` });
+  const giorni1 = [...new Set(lezioni1.map((l) => l.data))].sort();
+  lezioni1.push({
+    id: 'l-recupero-1',
+    corso_id: CORSO_1,
+    data: '2026-09-17',
+    ordine: 0,
+    minuti: 120,
+    materia: lezioni1.find((l) => l.data === giorni1[3])!.materia,
+    istruttore_id: 'u-rinaldi',
+    recupero: true,
+    validata: true,
+    validata_da: 'u-neri',
+    validata_il: '2026-09-16T07:00:00.000Z',
+    note: 'Recupero per le assenze della materia',
+    creato_il: '2026-09-15T08:00:00.000Z',
+    modificato_il: '2026-09-15T08:00:00.000Z',
+    modificato_da: 'u-neri',
+  });
+
+  // secondo corso: la prima settimana è validata, la seconda è ancora in preparazione
+  const lezioni2 = lezioniEsempio(CORSO_2, '2026-09-14', 2, docentiCorso2, g);
+  for (const l of lezioni2) if (l.data <= '2026-09-18') Object.assign(l, { validata: true, validata_da: 'u-neri', validata_il: '2026-09-13T18:00:00.000Z' });
+
+  const presenze1 = rapportiniEsempio(CORSO_1, lezioni1, FREQUENTATORI.map((p) => p.id), '2026-09-21', '2026-09-21');
+  const presenze2 = rapportiniEsempio(CORSO_2, lezioni2, NUOVI.map((p) => p.id), '2026-09-21', '2026-09-18');
+
   return {
     utenti,
     corsi,
@@ -292,7 +368,9 @@ export function datiEsempio(): Dati {
     training,
     istruttori: ISTRUTTORI,
     registrazioni: FREQUENTATORI.flatMap((p) => registrazioni(p, g)),
-    lezioni: [...lezioniEsempio(CORSO_1, INIZIO, 3, ['u-rinaldi', 'u-colombo', 'u-neri'], g), ...lezioniEsempio(CORSO_2, '2026-09-14', 2, docentiCorso2, g)],
+    lezioni: [...lezioni1, ...lezioni2],
     abilitazioni,
+    rapportini: [...presenze1.rapportini, ...presenze2.rapportini],
+    presenze: [...presenze1.presenze, ...presenze2.presenze],
   };
 }

@@ -73,7 +73,7 @@ describe('pianificazione', () => {
     expect(generaSettimana(TEORICO, lezioni, lunedi)).toEqual([]);
     const dopo = generaSettimana(TEORICO, lezioni, '2026-09-28');
     expect(dopo.length).toBeGreaterThan(0);
-    expect(statoTeorico(TEORICO, [...lezioni, ...dopo.map((p, i) => ({ ...p, id: String(i), corso_id: C2, note: '', creato_il: '', modificato_il: '', modificato_da: null }))]).totale.pianificati).toBe(
+    expect(statoTeorico(TEORICO, [...lezioni, ...dopo.map((p, i) => ({ ...p, id: String(i), corso_id: C2, recupero: false, validata: false, validata_da: null, validata_il: null, note: '', creato_il: '', modificato_il: '', modificato_da: null }))]).totale.pianificati).toBe(
       stato.totale.pianificati + dopo.reduce((s, p) => s + p.minuti, 0),
     );
   });
@@ -123,7 +123,7 @@ describe('motore', () => {
 
   it('il direttore prepara il programma del suo corso, l’istruttore no', () => {
     const giorni = ['2026-10-05'];
-    const lezioni = [{ id: 'l-x', corso_id: C2, data: '2026-10-05', ordine: 0, minuti: 120, materia: TEORICO.materie[0].id, istruttore_id: 'u-rinaldi', note: '' }];
+    const lezioni = [{ id: 'l-x', corso_id: C2, data: '2026-10-05', ordine: 0, minuti: 120, materia: TEORICO.materie[0].id, istruttore_id: 'u-rinaldi', recupero: false, note: '' }];
     const cmd: Comando = { tipo: 'lezioni.sostituisci', corso_id: C2, giorni, lezioni };
     expect(applica(dati, cmd, ctx('u-neri')).dati.lezioni.some((l) => l.id === 'l-x')).toBe(true);
     expect(() => applica(dati, cmd, ctx('u-rinaldi'))).toThrow(/Training Manager|permessi/);

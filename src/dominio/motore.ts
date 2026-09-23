@@ -1,6 +1,6 @@
 import { ErroreApp } from './errori';
 import { indice, programmaPratico, programmaTeorico } from './programmi';
-import type { Anagrafica, Corso, Dati, DatiTraining, ID, Iscrizione, Istruttore, Lezione, Registrazione, Ruolo, RuoloCorso, TipoEsecuzione, Utente } from './tipi';
+import type { Anagrafica, Corso, Dati, DatiTraining, ID, Iscrizione, Istruttore, Lezione, Presenza, Rapportino, Registrazione, Ruolo, RuoloCorso, StatoPresenza, TipoEsecuzione, Utente } from './tipi';
 
 /**
  * Comandi di modifica dei dati, con permessi e validazioni. Il motore è eseguito
@@ -20,7 +20,8 @@ export type CampiCorso = Pick<
   Corso,
   'id' | 'codice' | 'nome' | 'programma_teorico' | 'programma_pratico' | 'data_inizio' | 'data_fine' | 'maintenance_organization' | 'location' | 'ora_inizio' | 'minuti_giorno' | 'attivo'
 >;
-export type CampiLezione = Pick<Lezione, 'id' | 'corso_id' | 'data' | 'ordine' | 'minuti' | 'materia' | 'istruttore_id' | 'note'>;
+export type CampiLezione = Pick<Lezione, 'id' | 'corso_id' | 'data' | 'ordine' | 'minuti' | 'materia' | 'istruttore_id' | 'recupero' | 'note'>;
+export type CampiPresenza = Pick<Presenza, 'id' | 'user_id' | 'stato' | 'dalle' | 'alle' | 'motivo'>;
 
 export type Comando =
   | { tipo: 'corso.salva'; corso: CampiCorso }
@@ -34,6 +35,9 @@ export type Comando =
   | { tipo: 'registrazione.elimina'; id: ID }
   | { tipo: 'lezioni.sostituisci'; corso_id: ID; giorni: string[]; lezioni: CampiLezione[] }
   | { tipo: 'lezione.modifica'; lezione: Pick<CampiLezione, 'id' | 'istruttore_id' | 'note'> }
+  | { tipo: 'settimana.valida'; corso_id: ID; giorni: string[]; valida: boolean }
+  | { tipo: 'rapportino.salva'; corso_id: ID; data: string; note: string; presenze: CampiPresenza[] }
+  | { tipo: 'rapportino.valida'; corso_id: ID; data: string; valida: boolean }
   | { tipo: 'abilitazioni.imposta'; user_id: ID; programma: string; materie: string[] }
   | { tipo: 'utente.crea'; utente: CampiUtente; password: string }
   | { tipo: 'utente.modifica'; utente: Pick<Utente, 'id' | 'nome' | 'attivo' | 'istruttore_id'>; password?: string }
@@ -320,21 +324,98 @@ export function applica(dati: Dati, comando: Comando, ctx: Contesto): Esito {
       for (const l of comando.lezioni) {
         if (!giorni.has(l.data)) v.errori.lezioni = 'Una lezione cade fuori dai giorni indicati';
         if (!p.materie.some((m) => m.id === l.materia)) v.errori.materia = 'Materia non presente nel programma del corso';
-        if (!Number.isInteger(l.minuti) || l.minuti < 15 || l.minuti > 600) v.errori.minuti = 'Durata della lezione non valida';
+        // i periodi si compongono a quarti d'ora: 15, 30, 45 minuti e multipli
+        if (!Number.isInteger(l.minuti) || l.minuti < 15 || l.minuti > 600 || l.minuti % 15 !== 0) v.errori.minuti = 'Durata della lezione non valida: quarti d’ora da 15 a 600 minuti';
         if (l.istruttore_id && !iscrittoCome(comando.corso_id, l.istruttore_id, 'instructor') && !iscrittoCome(comando.corso_id, l.istruttore_id, 'direttore')) {
           v.errori.istruttore = 'Istruttore non iscritto al corso';
         }
       }
       v.verifica();
       const restanti = dati.lezioni.filter((l) => l.corso_id !== comando.corso_id || !giorni.has(l.data));
+      // dopo ogni modifica la settimana torna da validare: i frequentatori vedono solo i programmi validati
       const nuove: Lezione[] = comando.lezioni.map((l) => ({
         ...l,
+        recupero: l.recupero ?? false,
+        validata: false,
+        validata_da: null,
+        validata_il: null,
         note: (l.note ?? '').slice(0, 300),
         creato_il: dati.lezioni.find((x) => x.id === l.id)?.creato_il ?? ctx.ora,
         modificato_il: ctx.ora,
         modificato_da: io.id,
       }));
       return { dati: { ...dati, lezioni: [...restanti, ...nuove] }, effetti: [] };
+    }
+
+    case 'settimana.valida': {
+      permesso(guida(comando.corso_id), 'Solo il Training Manager o il direttore validano il programma.');
+      corso(comando.corso_id);
+      const giorni = new Set(comando.giorni);
+      const coinvolte = dati.lezioni.filter((l) => l.corso_id === comando.corso_id && giorni.has(l.data));
+      if (!coinvolte.length) throw new ErroreApp('VINCOLO', 'Nessuna lezione da validare in questi giorni.');
+      const validate = comando.valida ? { validata: true, validata_da: io.id, validata_il: ctx.ora } : { validata: false, validata_da: null, validata_il: null };
+      return { dati: { ...dati, lezioni: dati.lezioni.map((l) => (coinvolte.includes(l) ? { ...l, ...validate } : l)) }, effetti: [] };
+    }
+
+    case 'rapportino.salva': {
+      const c = corso(comando.corso_id);
+      const mio = ruoloNelCorso(dati, io, comando.corso_id);
+      // il rapportino lo compila chiunque frequenti il corso, per tutti i frequentatori
+      permesso(admin || mio === 'direttore' || mio === 'trainee' || mio === 'instructor', 'Solo chi partecipa al corso compila il rapportino.');
+      if (!c.programma_teorico) throw new ErroreApp('VINCOLO', 'Il corso non prevede la parte teorica.');
+      const esistente = dati.rapportini.find((r) => r.corso_id === comando.corso_id && r.data === comando.data);
+      if (esistente?.validato_il && !guida(comando.corso_id)) {
+        throw new ErroreApp('VINCOLO', 'Rapportino già validato: chiederne la riapertura al direttore del corso.');
+      }
+      const v = new Controlli();
+      const data = v.data('data', 'Data', comando.data, true, ctx.oggi) ?? '';
+      const note = v.testo('note', 'Note', comando.note, 300, false);
+      const orario = (campo: string, valore: string | null | undefined) => {
+        const t = (valore ?? '').trim();
+        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) v.errori[campo] = 'Orario non valido (es. 08:30)';
+        return t;
+      };
+      const presenze: Presenza[] = comando.presenze.map((p) => {
+        if (!iscrittoCome(comando.corso_id, p.user_id, 'trainee')) throw new ErroreApp('NON_TROVATO', 'Frequentatore non iscritto a questo corso.');
+        const stato: StatoPresenza = p.stato === 'assente' || p.stato === 'parziale' ? p.stato : 'presente';
+        const parziale = stato === 'parziale';
+        const dalle = parziale ? orario(`dalle_${p.user_id}`, p.dalle) : null;
+        const alle = parziale ? orario(`alle_${p.user_id}`, p.alle) : null;
+        if (parziale && dalle && alle && alle <= dalle) v.errori[`alle_${p.user_id}`] = 'L’orario di uscita precede quello di ingresso';
+        return {
+          id: p.id,
+          corso_id: comando.corso_id,
+          data: comando.data,
+          user_id: p.user_id,
+          stato,
+          dalle,
+          alle,
+          motivo: stato === 'presente' ? '' : v.testo(`motivo_${p.user_id}`, 'Motivo', p.motivo, 200, false),
+        };
+      });
+      if (new Set(presenze.map((p) => p.user_id)).size !== presenze.length) v.errori.presenze = 'Frequentatore indicato due volte';
+      v.verifica();
+      const rapportino: Rapportino = {
+        ...(esistente ?? { id: `${comando.corso_id}|${data}`, corso_id: comando.corso_id, data, validato_da: null, validato_il: null }),
+        note,
+        compilato_da: io.id,
+        compilato_il: ctx.ora,
+      };
+      const altre = dati.presenze.filter((p) => p.corso_id !== comando.corso_id || p.data !== data);
+      return {
+        dati: { ...dati, rapportini: sostituisci(dati.rapportini, (r) => r.id === rapportino.id, rapportino), presenze: [...altre, ...presenze] },
+        effetti: [],
+      };
+    }
+
+    case 'rapportino.valida': {
+      permesso(guida(comando.corso_id), 'Solo il Training Manager o il direttore validano il rapportino.');
+      const esistente = dati.rapportini.find((r) => r.corso_id === comando.corso_id && r.data === comando.data);
+      if (!esistente) throw new ErroreApp('NON_TROVATO', 'Rapportino non ancora compilato.');
+      const nuovo: Rapportino = comando.valida
+        ? { ...esistente, validato_da: io.id, validato_il: ctx.ora }
+        : { ...esistente, validato_da: null, validato_il: null };
+      return { dati: { ...dati, rapportini: sostituisci(dati.rapportini, (r) => r.id === nuovo.id, nuovo) }, effetti: [] };
     }
 
     case 'lezione.modifica': {

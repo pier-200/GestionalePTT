@@ -1705,6 +1705,54 @@ mark.evidenziato {
   text-align: right;
 }
 
+.lezione.recupero {
+  background: repeating-linear-gradient(135deg, transparent, transparent 9px, var(--carta-2) 9px, var(--carta-2) 18px);
+}
+.lezione-testa .mantine-Select-root {
+  margin-left: auto;
+}
+
+/* ---------- rapportino presenze ---------- */
+.rapportino {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+.riga-presenza {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--inchiostro);
+  background: var(--foglio);
+}
+.riga-presenza.parziale {
+  border-left: 5px solid var(--giallo);
+}
+.riga-presenza.assente {
+  border-left: 5px solid var(--rosso);
+}
+.riga-presenza .chi {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.riga-presenza .chi .debole {
+  font-size: 0.75rem;
+}
+.riga-presenza .perse {
+  font-size: 0.75rem;
+}
+.riga-assenze {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.riga-assenze strong {
+  min-width: 190px;
+}
+
 /* ---------- iscritti e materie ---------- */
 .elenco-iscritti {
   list-style: none;

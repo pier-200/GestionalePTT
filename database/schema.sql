@@ -6,7 +6,8 @@
 -- Sicurezza (Row Level Security), sempre limitata ai corsi a cui si è iscritti:
 --   frequentatore  legge e scrive solo le proprie righe (Personal Data, logbook);
 --   istruttore     legge tutto il corso, non scrive;
---   direttore      come l'istruttore, più programma teorico, iscrizioni e dati del corso;
+--   direttore      come l'istruttore, più programma teorico, iscrizioni, dati del corso e validazioni;
+--   rapportino     lo compila chiunque frequenti il corso, lo valida chi guida il corso;
 --   admin (TM)     tutto, su tutti i corsi; crea gli account con la Edge Function "gestione-utenti".
 
 -- ---------------------------------------------------------------------------
@@ -114,11 +115,17 @@ create table if not exists public.lezioni (
   id uuid primary key default gen_random_uuid(),
   corso_id uuid not null references public.corsi on delete cascade,
   data date not null,
-  ordine int not null check (ordine between 0 and 20),
-  minuti int not null check (minuti between 15 and 600),
+  ordine int not null check (ordine between 0 and 40),
+  -- periodi componibili a quarti d'ora (15, 30, 45 minuti e multipli)
+  minuti int not null check (minuti between 15 and 600 and minuti % 15 = 0),
   -- id della materia nel programma teorico del corso
   materia text not null,
   istruttore_id uuid references public.profili on delete set null,
+  recupero boolean not null default false,
+  -- il programma è visibile ai frequentatori solo dopo la validazione
+  validata boolean not null default false,
+  validata_da uuid,
+  validata_il timestamptz,
   note text not null default '' check (length(note) <= 300),
   creato_il timestamptz not null default now(),
   modificato_il timestamptz not null default now(),
@@ -126,6 +133,44 @@ create table if not exists public.lezioni (
   unique (corso_id, data, ordine)
 );
 create index if not exists lezioni_corso on public.lezioni (corso_id, data);
+-- aggiornamento di installazioni precedenti
+alter table public.lezioni add column if not exists recupero boolean not null default false;
+alter table public.lezioni add column if not exists validata boolean not null default false;
+alter table public.lezioni add column if not exists validata_da uuid;
+alter table public.lezioni add column if not exists validata_il timestamptz;
+alter table public.lezioni drop constraint if exists lezioni_ordine_check;
+alter table public.lezioni add constraint lezioni_ordine_check check (ordine between 0 and 40);
+alter table public.lezioni drop constraint if exists lezioni_minuti_check;
+alter table public.lezioni add constraint lezioni_minuti_check check (minuti between 15 and 600 and minuti % 15 = 0);
+
+-- rapportino presenze: una riga per giornata di corso, compilata dai frequentatori e validata da chi guida
+create table if not exists public.rapportini (
+  id uuid primary key default gen_random_uuid(),
+  corso_id uuid not null references public.corsi on delete cascade,
+  data date not null,
+  note text not null default '' check (length(note) <= 300),
+  compilato_da uuid,
+  compilato_il timestamptz not null default now(),
+  validato_da uuid,
+  validato_il timestamptz,
+  unique (corso_id, data)
+);
+
+create table if not exists public.presenze (
+  id uuid primary key default gen_random_uuid(),
+  corso_id uuid not null references public.corsi on delete cascade,
+  data date not null,
+  user_id uuid not null references public.profili on delete cascade,
+  stato text not null default 'presente' check (stato in ('presente', 'parziale', 'assente')),
+  -- orario effettivo, solo per la presenza parziale (standard: 08:00-16:30, il venerdì 08:00-12:00)
+  dalle text check (dalle ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
+  alle text check (alle ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
+  motivo text not null default '' check (length(motivo) <= 200),
+  unique (corso_id, data, user_id),
+  check ((stato = 'parziale') = (dalle is not null and alle is not null)),
+  check (alle is null or dalle is null or alle > dalle)
+);
+create index if not exists presenze_corso on public.presenze (corso_id, data);
 
 create table if not exists public.abilitazioni (
   id uuid primary key default gen_random_uuid(),
@@ -247,6 +292,60 @@ drop trigger if exists traccia on public.lezioni;
 create trigger traccia before insert or update on public.lezioni
 for each row execute function public.ptt_traccia_lezione();
 
+-- rapportino della giornata ancora aperto (non validato): finché lo è, lo modifica chiunque frequenti il corso
+create or replace function public.ptt_rapportino_aperto(c uuid, d date) returns boolean
+language sql stable security definer set search_path = public as $$
+  select not exists (select 1 from public.rapportini r where r.corso_id = c and r.data = d and r.validato_il is not null)
+$$;
+
+create or replace function public.ptt_traccia_rapportino() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.data > current_date then
+    raise exception 'Il rapportino non si compila per una data futura' using errcode = 'P0001';
+  end if;
+  if auth.uid() is null then return new; end if;
+  -- la validazione non cambia chi ha compilato il rapportino
+  if tg_op = 'UPDATE' and new.validato_il is distinct from old.validato_il then
+    new.compilato_il := old.compilato_il;
+    new.compilato_da := old.compilato_da;
+  else
+    new.compilato_il := now();
+    new.compilato_da := auth.uid();
+  end if;
+  if not public.ptt_guida(new.corso_id) then
+    -- solo il Training Manager o il direttore validano (e riaprono) il rapportino
+    if tg_op = 'UPDATE' and old.validato_il is not null then
+      raise exception 'Rapportino già validato: chiederne la riapertura al direttore del corso' using errcode = 'P0001';
+    end if;
+    new.validato_da := case when tg_op = 'UPDATE' then old.validato_da else null end;
+    new.validato_il := case when tg_op = 'UPDATE' then old.validato_il else null end;
+  elsif new.validato_il is not null and new.validato_da is null then
+    new.validato_da := auth.uid();
+  end if;
+  return new;
+end $$;
+drop trigger if exists traccia on public.rapportini;
+create trigger traccia before insert or update on public.rapportini
+for each row execute function public.ptt_traccia_rapportino();
+
+create or replace function public.ptt_controlla_presenza() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from public.iscrizioni i where i.corso_id = new.corso_id and i.user_id = new.user_id and i.ruolo = 'trainee') then
+    raise exception 'Il frequentatore non è iscritto a questo corso' using errcode = 'P0001';
+  end if;
+  if new.stato <> 'parziale' then
+    new.dalle := null;
+    new.alle := null;
+  end if;
+  if new.stato = 'presente' then new.motivo := ''; end if;
+  return new;
+end $$;
+drop trigger if exists controlla on public.presenze;
+create trigger controlla before insert or update on public.presenze
+for each row execute function public.ptt_controlla_presenza();
+
 create or replace function public.ptt_aggiornato() returns trigger
 language plpgsql as $$
 begin
@@ -297,6 +396,8 @@ alter table public.istruttori enable row level security;
 alter table public.registrazioni enable row level security;
 alter table public.lezioni enable row level security;
 alter table public.abilitazioni enable row level security;
+alter table public.rapportini enable row level security;
+alter table public.presenze enable row level security;
 
 drop policy if exists lettura on public.profili;
 -- i nomi degli account servono per gli elenchi (istruttore della lezione, autore di una modifica)
@@ -352,10 +453,27 @@ create policy scrittura on public.registrazioni for all to authenticated
   with check (public.ptt_e_admin() or (user_id = auth.uid() and public.ptt_ruolo() = 'trainee'));
 
 drop policy if exists lettura on public.lezioni;
-create policy lettura on public.lezioni for select to authenticated using (public.ptt_membro(corso_id));
+-- il frequentatore vede il programma solo dopo la validazione del direttore o del Training Manager
+create policy lettura on public.lezioni for select to authenticated
+  using (public.ptt_membro(corso_id) and (validata or public.ptt_ruolo() <> 'trainee'));
 drop policy if exists scrittura on public.lezioni;
 create policy scrittura on public.lezioni for all to authenticated
   using (public.ptt_guida(corso_id)) with check (public.ptt_guida(corso_id));
+
+drop policy if exists lettura on public.rapportini;
+create policy lettura on public.rapportini for select to authenticated using (public.ptt_membro(corso_id));
+drop policy if exists scrittura on public.rapportini;
+-- il rapportino lo compila chiunque frequenti il corso, finché non è validato
+create policy scrittura on public.rapportini for all to authenticated
+  using (public.ptt_guida(corso_id) or (public.ptt_membro(corso_id) and validato_il is null))
+  with check (public.ptt_guida(corso_id) or public.ptt_membro(corso_id));
+
+drop policy if exists lettura on public.presenze;
+create policy lettura on public.presenze for select to authenticated using (public.ptt_membro(corso_id));
+drop policy if exists scrittura on public.presenze;
+create policy scrittura on public.presenze for all to authenticated
+  using (public.ptt_guida(corso_id) or (public.ptt_membro(corso_id) and public.ptt_rapportino_aperto(corso_id, data)))
+  with check (public.ptt_guida(corso_id) or (public.ptt_membro(corso_id) and public.ptt_rapportino_aperto(corso_id, data)));
 
 drop policy if exists lettura on public.abilitazioni;
 create policy lettura on public.abilitazioni for select to authenticated using (public.ptt_ruolo() is not null);
@@ -368,21 +486,23 @@ create policy scrittura on public.abilitazioni for all to authenticated
 -- ---------------------------------------------------------------------------
 
 revoke all on public.profili, public.corsi, public.iscrizioni, public.anagrafiche, public.training_data,
-  public.istruttori, public.registrazioni, public.lezioni, public.abilitazioni from anon;
+  public.istruttori, public.registrazioni, public.lezioni, public.abilitazioni, public.rapportini, public.presenze from anon;
 grant select, update on public.profili to authenticated;
 grant select, insert, update, delete on public.corsi, public.iscrizioni, public.anagrafiche, public.training_data,
-  public.registrazioni, public.lezioni, public.abilitazioni to authenticated;
+  public.registrazioni, public.lezioni, public.abilitazioni, public.rapportini, public.presenze to authenticated;
 grant select, insert, update on public.istruttori to authenticated;
 -- chiave di servizio (Edge Function gestione-utenti e script di amministrazione): scavalca RLS ma servono i privilegi
 grant select, insert, update, delete on public.profili, public.corsi, public.iscrizioni, public.anagrafiche,
-  public.training_data, public.istruttori, public.registrazioni, public.lezioni, public.abilitazioni to service_role;
+  public.training_data, public.istruttori, public.registrazioni, public.lezioni, public.abilitazioni,
+  public.rapportini, public.presenze to service_role;
 grant execute on function public.ptt_stato() to anon, authenticated;
 grant execute on function public.ptt_primo_admin(text, text), public.ptt_password_cambiata() to authenticated;
+grant execute on function public.ptt_rapportino_aperto(uuid, date) to authenticated;
 
 do $$
 declare t text;
 begin
-  foreach t in array array['profili', 'corsi', 'iscrizioni', 'anagrafiche', 'training_data', 'istruttori', 'registrazioni', 'lezioni', 'abilitazioni'] loop
+  foreach t in array array['profili', 'corsi', 'iscrizioni', 'anagrafiche', 'training_data', 'istruttori', 'registrazioni', 'lezioni', 'abilitazioni', 'rapportini', 'presenze'] loop
     if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
       execute format('alter publication supabase_realtime add table public.%I', t);
     end if;

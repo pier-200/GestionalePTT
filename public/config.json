@@ -1,8 +1,9 @@
 {
   "archivio": {
-    "tipo": "supabase",
-    "url": "https://dyragieggyvgayteotlm.supabase.co",
-    "chiavePubblica": "sb_publishable_-hIoz4aYuJiDw9t9V-zRZQ_7g5hypwV",
-    "dominioEmail": "ptt.local"
+    "tipo": "github",
+    "owner": "pier-200",
+    "repoDati": "tt-dati",
+    "repoAccessi": "tt-accessi",
+    "branch": "main"
   }
 }

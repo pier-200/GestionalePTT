@@ -109,10 +109,43 @@ export interface Lezione {
   minuti: number;
   materia: string;
   istruttore_id: ID | null;
+  /** Lezione di recupero: sana le assenze della stessa materia e non ne produce di nuove. */
+  recupero: boolean;
+  /** Il programma diventa visibile ai frequentatori solo dopo la validazione. */
+  validata: boolean;
+  validata_da: ID | null;
+  validata_il: string | null;
   note: string;
   creato_il: string;
   modificato_il: string;
   modificato_da: ID | null;
+}
+
+export type StatoPresenza = 'presente' | 'parziale' | 'assente';
+
+/** Rapportino presenze di una giornata di corso: lo compilano i frequentatori, lo valida chi guida. */
+export interface Rapportino {
+  id: ID;
+  corso_id: ID;
+  data: string;
+  note: string;
+  compilato_da: ID | null;
+  compilato_il: string;
+  validato_da: ID | null;
+  validato_il: string | null;
+}
+
+/** Presenza di un frequentatore in una giornata (orario standard salvo diversa indicazione). */
+export interface Presenza {
+  id: ID;
+  corso_id: ID;
+  data: string;
+  user_id: ID;
+  stato: StatoPresenza;
+  /** Orario effettivo, solo per la presenza parziale. */
+  dalle: string | null;
+  alle: string | null;
+  motivo: string;
 }
 
 /** Materia che un istruttore è abilitato a erogare. */
@@ -133,6 +166,8 @@ export interface Dati {
   registrazioni: Registrazione[];
   lezioni: Lezione[];
   abilitazioni: Abilitazione[];
+  rapportini: Rapportino[];
+  presenze: Presenza[];
 }
 
 export const datiVuoti = (): Dati => ({
@@ -145,6 +180,8 @@ export const datiVuoti = (): Dati => ({
   registrazioni: [],
   lezioni: [],
   abilitazioni: [],
+  rapportini: [],
+  presenze: [],
 });
 
 export const ETICHETTA_RUOLO: Record<Ruolo, string> = {

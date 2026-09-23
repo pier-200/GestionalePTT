@@ -29,6 +29,7 @@ Ogni salvataggio crea un commit, quindi qualsiasi versione precedente è recuper
 - \`db/utenti.json\`, \`db/corsi.json\`, \`db/iscrizioni.json\`, \`db/anagrafiche.json\`, \`db/training.json\`, \`db/istruttori.json\`, \`db/abilitazioni.json\`
 - \`db/registrazioni/<id frequentatore>.json\`: logbook di ciascun frequentatore
 - \`db/lezioni/<id corso>.json\`: programma della parte teorica
+- \`db/presenze/<id corso>.json\`: rapportini presenze e assenze della parte teorica
 `;
 
 /** Un file per collezione; registrazioni e lezioni divise per frequentatore e per corso (salvataggi più leggeri). */
@@ -43,6 +44,7 @@ function inFile(d: Dati): Map<string, string> {
     ['db/training.json', testo(d.training)],
     ['db/istruttori.json', testo(d.istruttori)],
     ['db/abilitazioni.json', testo(d.abilitazioni)],
+    ['db/rapportini.json', testo(d.rapportini)],
   ]);
   const raggruppa = <T,>(elementi: T[], chiave: (x: T) => string) => {
     const m = new Map<string, T[]>();
@@ -53,6 +55,8 @@ function inFile(d: Dati): Map<string, string> {
   for (const u of d.utenti) if (u.ruolo === 'trainee') file.set(`db/registrazioni/${u.id}.json`, testo(perUtente.get(u.id) ?? []));
   const perCorso = raggruppa(d.lezioni, (l) => l.corso_id);
   for (const c of d.corsi) file.set(`db/lezioni/${c.id}.json`, testo(perCorso.get(c.id) ?? []));
+  const presenzePerCorso = raggruppa(d.presenze, (p) => p.corso_id);
+  for (const c of d.corsi) file.set(`db/presenze/${c.id}.json`, testo(presenzePerCorso.get(c.id) ?? []));
   return file;
 }
 
@@ -72,8 +76,10 @@ function daFile(file: Map<string, string>): Dati {
     training: elenco(file.get('db/training.json')),
     istruttori: elenco(file.get('db/istruttori.json')),
     abilitazioni: elenco(file.get('db/abilitazioni.json')),
+    rapportini: elenco(file.get('db/rapportini.json')),
     registrazioni: raccogli('db/registrazioni/'),
     lezioni: raccogli('db/lezioni/'),
+    presenze: raccogli('db/presenze/'),
   };
 }
 

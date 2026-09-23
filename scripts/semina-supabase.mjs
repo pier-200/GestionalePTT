@@ -46,7 +46,7 @@ if (esempio) {
   const pwEsempio = password();
   const id = new Map([['u-tm', tm]]);
   for (const u of d.utenti.filter((x) => x.ruolo !== 'admin')) id.set(u.id, await creaUtente(u.username, pwEsempio, { esempio: true }));
-  for (const x of [...d.istruttori, ...d.corsi, ...d.iscrizioni, ...d.lezioni]) id.set(x.id, randomUUID());
+  for (const x of [...d.istruttori, ...d.corsi, ...d.iscrizioni, ...d.lezioni, ...d.rapportini, ...d.presenze]) id.set(x.id, randomUUID());
   const m = (x) => (x == null ? null : (id.get(x) ?? x));
   verifica(await sb.from('istruttori').insert(d.istruttori.map((i) => ({ ...i, id: m(i.id), created_by: m(i.created_by) }))), 'istruttori');
   verifica(
@@ -64,14 +64,18 @@ if (esempio) {
     await sb.from('abilitazioni').insert(d.abilitazioni.map((a) => ({ user_id: m(a.user_id), programma: a.programma, materia: a.materia }))),
     'abilitazioni',
   );
-  const lezioni = d.lezioni.map((l) => ({ ...l, id: m(l.id), corso_id: m(l.corso_id), istruttore_id: m(l.istruttore_id) }));
+  const lezioni = d.lezioni.map((l) => ({ ...l, id: m(l.id), corso_id: m(l.corso_id), istruttore_id: m(l.istruttore_id), validata_da: m(l.validata_da), modificato_da: m(l.modificato_da) }));
   for (let i = 0; i < lezioni.length; i += 200) verifica(await sb.from('lezioni').insert(lezioni.slice(i, i + 200)), 'lezioni');
+  const rapportini = d.rapportini.map((r) => ({ ...r, id: m(r.id), corso_id: m(r.corso_id), compilato_da: m(r.compilato_da), validato_da: m(r.validato_da) }));
+  for (let i = 0; i < rapportini.length; i += 200) verifica(await sb.from('rapportini').insert(rapportini.slice(i, i + 200)), 'rapportini');
+  const presenze = d.presenze.map((p) => ({ ...p, id: m(p.id), corso_id: m(p.corso_id), user_id: m(p.user_id) }));
+  for (let i = 0; i < presenze.length; i += 200) verifica(await sb.from('presenze').insert(presenze.slice(i, i + 200)), 'presenze');
   const regs = d.registrazioni.map((r) => ({ ...r, id: randomUUID(), corso_id: m(r.corso_id), user_id: m(r.user_id), instructor_id: m(r.instructor_id), creato_da: m(r.creato_da), modificato_da: m(r.modificato_da) }));
   for (let i = 0; i < regs.length; i += 200) verifica(await sb.from('registrazioni').insert(regs.slice(i, i + 200)), 'registrazioni');
   righe.push('', `Account della situazione esempio (dati inventati), password comune: ${pwEsempio}`);
   for (const u of d.utenti.filter((x) => x.ruolo !== 'admin')) righe.push(`  ${u.username}  (${u.ruolo === 'instructor' ? 'istruttore' : 'frequentatore'})`);
   righe.push('', 'Prima dell’uso reale eliminarli con database/elimina_esempio.sql (SQL Editor di Supabase).');
-  console.log(`Situazione esempio caricata: ${d.utenti.length - 1} account, ${d.corsi.length} corsi, ${lezioni.length} lezioni, ${regs.length} registrazioni.`);
+  console.log(`Situazione esempio caricata: ${d.utenti.length - 1} account, ${d.corsi.length} corsi, ${lezioni.length} lezioni, ${rapportini.length} rapportini, ${regs.length} registrazioni.`);
 }
 writeFileSync(fileCredenziali, `${righe.join('\r\n')}\r\n`);
 console.log(`Training Manager "${username}" creato. Credenziali scritte in ${fileCredenziali}`);

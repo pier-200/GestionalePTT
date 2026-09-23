@@ -137,6 +137,84 @@ await page.goto(`${BASE}#/settimana?c=c-2026-1`);
 await pausa();
 assert.equal(await page.getByRole('button', { name: 'Genera' }).count(), 0, 'istruttore non genera il programma');
 
+// 8. un frequentatore compila il rapportino presenze per un compagno
+await esci();
+await profilo('Matteo Gallo');
+await page.goto(`${BASE}#/rapportino?c=c-2026-1&g=2026-09-22`);
+await pausa(500);
+const primo = page.locator('.riga-presenza').first();
+const nomeSegnato = (await primo.locator('.chi strong').innerText()).trim();
+await primo.getByText('Assente', { exact: true }).click();
+await primo.getByLabel('Motivo').fill('Servizio di guardia');
+await page.getByRole('button', { name: 'Salva' }).click();
+await page.getByText('Rapportino salvato').waitFor({ timeout: 15000 });
+await pausa(400);
+assert.ok(await page.locator('.riga-presenza.assente').first().isVisible(), 'assenza registrata nel rapportino');
+
+// 9. il direttore valida il rapportino: da lì in poi il frequentatore non lo tocca più
+await esci();
+await profilo('Marco Neri');
+await page.goto(`${BASE}#/rapportino?c=c-2026-1&g=2026-09-22`);
+await pausa(500);
+await page.getByRole('button', { name: 'Valida' }).click();
+await page.getByText('Rapportino validato').waitFor({ timeout: 15000 });
+await pausa(400);
+assert.match(await page.locator('.conto-scalare').innerText(), /validato da/i, 'rapportino validato');
+await page.goto(`${BASE}#/assenze?c=c-2026-1`);
+await pausa(500);
+const assenze = await page.locator('body').innerText();
+assert.match(assenze, /Non idoneo/, 'lo staff vede chi ha superato il 10% di assenze');
+assert.match(assenze, new RegExp(nomeSegnato.split(' ').at(-1)), 'il frequentatore segnato compare nel quadro assenze');
+
+await esci();
+await profilo('Matteo Gallo');
+await page.goto(`${BASE}#/rapportino?c=c-2026-1&g=2026-09-22`);
+await pausa(500);
+assert.ok(await page.getByRole('button', { name: 'Salva' }).isDisabled(), 'rapportino validato: il frequentatore non lo modifica');
+await page.goto(`${BASE}#/assenze?c=c-2026-1`);
+await pausa(400);
+assert.equal(await page.locator('.riga-assenze').count(), 1, 'il frequentatore vede solo le proprie assenze');
+
+// 10. il direttore compone un singolo periodo e lo pubblica; prima della validazione il frequentatore non vede nulla
+await esci();
+await profilo('Marco Neri');
+await page.goto(`${BASE}#/settimana?c=c-2026-2&w=2026-10-12`);
+await pausa(500);
+await page.locator('.giorno').first().getByRole('button', { name: 'Periodo' }).click();
+const periodo = page.locator('.giorno').first().locator('.lezione').first();
+await periodo.getByLabel('Durata').click();
+await page.getByRole('option', { name: '45′', exact: true }).click();
+await page.getByRole('button', { name: 'Salva' }).click();
+await page.getByText('Programma della settimana salvato').waitFor({ timeout: 15000 });
+await pausa(400);
+assert.match(await page.locator('.settimana-testa').innerText(), /da validare/i, 'la settimana salvata resta da validare');
+
+await esci();
+await profilo('Davide Marchetti');
+await page.goto(`${BASE}#/settimana?c=c-2026-2&w=2026-10-12`);
+await pausa(500);
+assert.equal(await page.locator('.lezione').count(), 0, 'il frequentatore non vede il programma non validato');
+
+await esci();
+await profilo('Marco Neri');
+await page.goto(`${BASE}#/settimana?c=c-2026-2&w=2026-10-12`);
+await pausa(500);
+await page.getByRole('button', { name: 'Valida' }).click();
+await page.getByText('Settimana validata').waitFor({ timeout: 15000 });
+await esci();
+await profilo('Davide Marchetti');
+await page.goto(`${BASE}#/settimana?c=c-2026-2&w=2026-10-12`);
+await pausa(500);
+assert.ok((await page.locator('.lezione').count()) > 0, 'dopo la validazione il frequentatore vede il programma');
+
+// 11. ore degli istruttori
+await esci();
+await profilo('Luca Ferri');
+await page.goto(`${BASE}#/docenti?c=c-2026-1`);
+await pausa(500);
+assert.match(await page.locator('.cartiglio').innerText(), /ore già erogate/i, 'quadro delle ore degli istruttori');
+assert.ok((await page.locator('.tabella tbody tr').count()) > 0, 'elenco istruttori con le ore erogate');
+
 await browser.close();
 assert.deepEqual(errori, [], `errori JavaScript: ${errori.join('; ')}`);
 console.log('e2e: tutti i controlli superati');

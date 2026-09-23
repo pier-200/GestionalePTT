@@ -2,8 +2,11 @@ import {
   IconBook2,
   IconCalendarWeek,
   IconChalkboard,
+  IconClipboardCheck,
   IconClipboardList,
   IconId,
+  IconPresentationAnalytics,
+  IconUserOff,
   IconLayoutGrid,
   IconReportAnalytics,
   IconSchool,
@@ -49,7 +52,10 @@ export interface Voce {
 
 const TEORIA: Voce[] = [
   { a: '/settimana', etichetta: 'Programma settimanale', breve: 'Settimana', icona: IconCalendarWeek, parte: 'mtt' },
+  { a: '/rapportino', etichetta: 'Rapportino presenze', breve: 'Rapportino', icona: IconClipboardCheck, parte: 'mtt' },
+  { a: '/assenze', etichetta: 'Assenze e idoneità', breve: 'Assenze', icona: IconUserOff, parte: 'mtt' },
   { a: '/teoria', etichetta: 'Situazione della teoria', breve: 'Teoria', icona: IconSchool, parte: 'mtt' },
+  { a: '/docenti', etichetta: 'Ore degli istruttori', breve: 'Docenti', icona: IconPresentationAnalytics, parte: 'mtt', staff: true },
   { a: '/materie', etichetta: 'Materie e istruttori', breve: 'Materie', icona: IconChalkboard, parte: 'mtt', staff: true },
 ];
 

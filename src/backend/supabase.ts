@@ -8,7 +8,7 @@ import { archivio, type Backend, type DatiPrimoAvvio, type Sessione } from './ti
 type ConfigSupabase = Extract<Config, { tipo: 'supabase' }>;
 
 const RICORDAMI = 'supabase:ricordami';
-const TABELLE = ['profili', 'corsi', 'iscrizioni', 'anagrafiche', 'training_data', 'istruttori', 'registrazioni', 'lezioni', 'abilitazioni'] as const;
+const TABELLE = ['profili', 'corsi', 'iscrizioni', 'anagrafiche', 'training_data', 'istruttori', 'registrazioni', 'lezioni', 'abilitazioni', 'rapportini', 'presenze'] as const;
 
 function traduci(e: { message?: string; code?: string } | null | undefined): ErroreApp {
   const m = e?.message ?? 'errore sconosciuto';
@@ -162,6 +162,8 @@ export class SupabaseBackend implements Backend {
         if (t === 'registrazioni') nuovi.registrazioni = await this.tutte('registrazioni', 'data');
         if (t === 'lezioni') nuovi.lezioni = await this.tutte('lezioni', 'data');
         if (t === 'abilitazioni') nuovi.abilitazioni = await this.tutte('abilitazioni', 'user_id');
+        if (t === 'rapportini') nuovi.rapportini = await this.tutte('rapportini', 'data');
+        if (t === 'presenze') nuovi.presenze = await this.tutte('presenze', 'data');
       }),
     );
     this.dati = nuovi;
@@ -235,6 +237,35 @@ export class SupabaseBackend implements Backend {
         this.sporche.add('lezioni');
         break;
       }
+      case 'settimana.valida':
+        verifica(
+          await this.sb
+            .from('lezioni')
+            .update(comando.valida ? { validata: true, validata_da: this.utente.id, validata_il: new Date().toISOString() } : { validata: false, validata_da: null, validata_il: null })
+            .eq('corso_id', comando.corso_id)
+            .in('data', comando.giorni),
+        );
+        this.sporche.add('lezioni');
+        break;
+      case 'rapportino.salva': {
+        verifica(await this.sb.from('rapportini').upsert({ corso_id: comando.corso_id, data: comando.data, note: comando.note }, { onConflict: 'corso_id,data' }));
+        verifica(await this.sb.from('presenze').delete().eq('corso_id', comando.corso_id).eq('data', comando.data));
+        if (comando.presenze.length) {
+          verifica(await this.sb.from('presenze').insert(comando.presenze.map((p) => ({ ...p, corso_id: comando.corso_id, data: comando.data }))));
+        }
+        this.sporche.add('rapportini').add('presenze');
+        break;
+      }
+      case 'rapportino.valida':
+        verifica(
+          await this.sb
+            .from('rapportini')
+            .update(comando.valida ? { validato_il: new Date().toISOString(), validato_da: this.utente.id } : { validato_il: null, validato_da: null })
+            .eq('corso_id', comando.corso_id)
+            .eq('data', comando.data),
+        );
+        this.sporche.add('rapportini');
+        break;
       case 'abilitazioni.imposta':
         verifica(await this.sb.from('abilitazioni').delete().eq('user_id', comando.user_id).eq('programma', comando.programma));
         if (comando.materie.length) {

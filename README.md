@@ -25,7 +25,9 @@ Il Training Manager crea i corsi, sceglie i programmi (teorico e/o pratico) e vi
 |---|---|---|---|---|
 | Corsi visibili | i propri | quelli a cui è iscritto | quelli che dirige | tutti |
 | Logbook (PTT) | solo il proprio, in scrittura | lettura di tutto il corso | lettura | correzioni su tutti |
-| Programma settimanale (MTT) | lettura | lettura | **prepara e assegna gli istruttori** | idem |
+| Programma settimanale (MTT) | lettura, solo se validato | lettura | **prepara, valida e assegna gli istruttori** | idem |
+| Rapportino presenze | **compila per tutti**, finché non è validato | compila | valida e riapre | valida e riapre |
+| Assenze e idoneità | le proprie | tutto il corso | tutto il corso | tutto il corso |
 | Materie e abilitazioni | – | lettura | modifica | modifica |
 | Iscrizioni e dati del corso | – | – | modifica | modifica |
 | Account | – | – | – | crea, disattiva, reimposta password |
@@ -37,9 +39,27 @@ Il Training Manager crea i corsi, sceglie i programmi (teorico e/o pratico) e vi
 - **Programma settimanale**: si sceglie la settimana e si preme «Genera»: l'app riempie i giorni liberi seguendo
   l'ordine del programma, con un massimo di 6 ore dal lunedì al giovedì e 3 il venerdì (modificabile per corso).
   Una materia lunga si spezza su più giorni; per ogni lezione si sceglie l'istruttore tra quelli **abilitati** a quella materia.
+- **Periodi componibili**: ogni lezione si aggiunge, si sposta, si accorcia o si allunga a quarti d'ora (15, 30, 45
+  minuti e multipli), con «Periodo» nella giornata; il segno «Recupero» marca le lezioni di recupero.
+- **Validazione**: la settimana salvata resta privata finché il direttore o il TM premono «Valida»; solo allora i
+  frequentatori la vedono. Ogni modifica successiva ritira la validazione.
 - **Conto a scalare**: le ore che restano compaiono sotto ogni lezione mentre si compone la settimana, nella barra in
   alto e nella pagina «Situazione della teoria» (per modulo, per materia, ore già svolte e settimane stimate).
 - **Materie e istruttori**: il Training Manager o il direttore indicano quali materie ogni istruttore può erogare.
+- **Ore degli istruttori**: pagina «Docenti» con le ore a calendario ed erogate da ciascun istruttore.
+- **Excel**: «Excel» esporta il programma della settimana (formato provvisorio, da sostituire col modulo ufficiale).
+
+## Presenze e assenze
+
+- **Rapportino giornaliero**: compilazione standard 08:00–16:30 dal lunedì al giovedì e 08:00–12:00 il venerdì. Per
+  ciascun frequentatore si sceglie «Presente», «Parziale» (con orario di ingresso e uscita) o «Assente», con il motivo.
+  Lo compila **qualsiasi frequentatore per tutti**; il direttore o il TM lo **validano** (e possono riaprirlo).
+- **Assenze per lezione**: chi perde anche un solo minuto di una lezione risulta assente a quella lezione. La pagina
+  «Assenze» mostra le ore perse per ciascun frequentatore e **in quali materie**, lezione per lezione.
+- **Recuperi**: una lezione segnata «Recupero» sana l'assenza della stessa materia per chi la frequenta e non produce
+  assenze per chi manca.
+- **Idoneità**: al raggiungimento del **10%** di assenze sulle 219 ore del programma (21,9 h) il frequentatore risulta
+  **«Non idoneo»** all'esame teorico.
 
 ## Parte pratica (PTT)
 
@@ -77,8 +97,11 @@ Si sceglie in [`public/config.json`](public/config.json), senza ricompilare:
 | `archivio.tipo` | Dove stanno i dati | Permessi | Aggiornamento |
 |---|---|---|---|
 | `demo` (sempre con `?demo`) | nel browser di chi apre l'app | applicati dall'app | tra schede |
-| `supabase` (in uso) | PostgreSQL centrale | **dal database**, per corso (RLS) | in tempo reale |
-| `github` | repository privato con portachiavi cifrato | applicati dall'app | controllo ogni 30 s |
+| `github` (in uso) | repository privato `pier-200/tt-dati` + portachiavi cifrato in `tt-accessi` | applicati dall'app | controllo ogni 30 s |
+| `supabase` (pronto) | PostgreSQL centrale | **dal database**, per corso (RLS) | in tempo reale |
+
+Al primo accesso il Training Manager inserisce un token GitHub fine-grained (Contents: Read and write sui due
+repository): viene cifrato nel portachiavi e non va condiviso.
 
 Istruzioni e migrazione: [docs/PUBBLICAZIONE.md](docs/PUBBLICAZIONE.md).
 
@@ -86,8 +109,9 @@ Istruzioni e migrazione: [docs/PUBBLICAZIONE.md](docs/PUBBLICAZIONE.md).
 
 ## Situazione esempio
 
-Due corsi: il 1° 2026 (teoria in corso e pratica avviata, 6 frequentatori) e il 2° 2026 (solo teoria, appena iniziato,
-3 frequentatori). Profili pronti nella pagina di accesso in modalità demo: Training Manager, direttore del corso,
+Due corsi: il 1° 2026 (teoria conclusa e validata, pratica avviata, 6 frequentatori, rapportini presenze compilati con
+qualche assenza, una lezione di recupero e un «non idoneo») e il 2° 2026 (solo teoria, appena iniziato, 3 frequentatori,
+seconda settimana ancora da validare). Profili pronti nella pagina di accesso in modalità demo: Training Manager, direttore del corso,
 tre istruttori e i frequentatori. «Ripristina la situazione esempio» riporta tutto allo stato iniziale.
 
 ## Sviluppo
@@ -95,7 +119,7 @@ tre istruttori e i frequentatori. «Ripristina la situazione esempio» riporta t
 ```bash
 npm install
 npm run dev          # http://localhost:5174
-npm test             # dominio, pianificazione e schema SQL (PGlite)
+npm test             # dominio, pianificazione, presenze e schema SQL (PGlite)
 npm run build && npx vite preview --port 4174 && npm run e2e   # prova nel browser Edge
 npm run pubblica     # compila e aggiorna GitHub Pages (ramo gh-pages)
 ```
@@ -107,7 +131,7 @@ database/schema.sql            tabelle, RLS per corso, tempo reale       databas
 scripts/import_catalogo.py     programma pratico dall'Excel             scripts/import_programma_mtt.py  programma teorico
 scripts/layout_compliance.py   posizioni dei valori nel modulo PDF      scripts/semina-supabase.mjs      TM e situazione esempio
 supabase/functions/gestione-utenti   creazione e modifica account (Edge Function)
-src/dominio/    programmi, compliance, pianificazione, motore dei comandi (permessi), viste
+src/dominio/    programmi, compliance, pianificazione, presenze, motore dei comandi (permessi), viste
 src/backend/    archivi demo, github, supabase                          src/esporta.ts  Excel e CSV
 src/ui/         interfaccia: guscio, pagine MTT e PTT, stile «tavola tecnica»
 tests/          dominio e pianificazione, schema SQL, end-to-end

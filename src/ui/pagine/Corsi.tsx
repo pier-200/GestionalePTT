@@ -7,7 +7,7 @@ import { statoTeorico } from '../../dominio/pianificazione';
 import { PROGRAMMI_PRATICI, PROGRAMMI_TEORICI, programmaPratico, programmaTeorico } from '../../dominio/programmi';
 import { corsiDi, ruoloNelCorso, type CampiCorso } from '../../dominio/motore';
 import type { Corso } from '../../dominio/tipi';
-import { formatoData, frequentatori, iscritti, lezioniDi, ore, situazione } from '../../dominio/viste';
+import { formatoData, frequentatori, iscritti, lezioniVisibili, ore, situazione } from '../../dominio/viste';
 import { IntestazionePagina } from '../componenti/disegno';
 import { link, ricordaCorso } from '../navigazione';
 import { naviga } from '../router';
@@ -41,7 +41,7 @@ export function Corsi() {
           {elenco.map((c) => {
             const teorico = programmaTeorico(c.programma_teorico);
             const pratico = programmaPratico(c.programma_pratico);
-            const stato = teorico ? statoTeorico(teorico, lezioniDi(dati, c.id)) : null;
+            const stato = teorico ? statoTeorico(teorico, lezioniVisibili(dati, c.id, utente.ruolo === 'trainee' ? 'trainee' : null)) : null;
             const allievi = frequentatori(dati, c.id);
             const medie = pratico ? allievi.map((u) => situazione(dati, c, u).report.totale.percentuale) : [];
             const media = medie.length ? medie.reduce((s, x) => s + x, 0) / medie.length : 0;

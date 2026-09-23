@@ -37,6 +37,49 @@ export const registrazioniDi = (dati: Dati, corsoId: ID | null | undefined, user
 export const lezioniDi = (dati: Dati, corsoId: ID | null | undefined) =>
   dati.lezioni.filter((l) => l.corso_id === corsoId).sort((a, b) => a.data.localeCompare(b.data) || a.ordine - b.ordine);
 
+/** Programma visibile: il frequentatore vede solo le settimane già validate. */
+export const lezioniVisibili = (dati: Dati, corsoId: ID | null | undefined, ruolo: string | null) =>
+  ruolo === 'trainee' ? lezioniDi(dati, corsoId).filter((l) => l.validata) : lezioniDi(dati, corsoId);
+
+export const rapportiniDi = (dati: Dati, corsoId: ID | null | undefined) => dati.rapportini.filter((r) => r.corso_id === corsoId).sort((a, b) => a.data.localeCompare(b.data));
+
+export const presenzeDi = (dati: Dati, corsoId: ID | null | undefined) => dati.presenze.filter((p) => p.corso_id === corsoId);
+
+export interface RigaDocente {
+  utente: Utente;
+  minuti: number;
+  /** Minuti già erogati (lezioni fino a oggi). */
+  svolti: number;
+  lezioni: number;
+  materie: number;
+  prima: string;
+  ultima: string;
+}
+
+/** Ore di lezione teorica erogate da ciascun istruttore del corso. */
+export function oreDocenti(dati: Dati, corsoId: ID | null | undefined, lezioni: readonly Lezione[], oggi: string): RigaDocente[] {
+  const perId = new Map<ID, Lezione[]>();
+  for (const l of lezioni) if (l.istruttore_id) perId.set(l.istruttore_id, [...(perId.get(l.istruttore_id) ?? []), l]);
+  const elenco = docenti(dati, corsoId);
+  const conosciuti = elenco.filter((u) => perId.has(u.id));
+  const altri = [...perId.keys()].filter((id) => !elenco.some((u) => u.id === id)).flatMap((id) => dati.utenti.filter((u) => u.id === id));
+  return [...conosciuti, ...altri, ...elenco.filter((u) => !perId.has(u.id))]
+    .map((utente) => {
+      const sue = perId.get(utente.id) ?? [];
+      const date = sue.map((l) => l.data).sort();
+      return {
+        utente,
+        minuti: sue.reduce((s, l) => s + l.minuti, 0),
+        svolti: sue.filter((l) => l.data <= oggi).reduce((s, l) => s + l.minuti, 0),
+        lezioni: sue.length,
+        materie: new Set(sue.map((l) => l.materia)).size,
+        prima: date[0] ?? '',
+        ultima: date.at(-1) ?? '',
+      };
+    })
+    .sort((a, b) => b.minuti - a.minuti || chiaveOrdine(dati, a.utente).localeCompare(chiaveOrdine(dati, b.utente)));
+}
+
 export interface RigaIstruttore {
   istruttore: Istruttore;
   task: number;

@@ -131,6 +131,10 @@ describe('programma teorico', () => {
     expect(await righe(U.dir, lezione(C1, '2026-10-05', U.ist))).toHaveLength(1);
     expect(await errore(U.ist, lezione(C1, '2026-10-06', U.ist))).toMatch(/row-level security/);
     expect((await uno(U.ist, 'select count(*)::int n from public.lezioni')).n).toBe(1);
+    // il frequentatore vede il programma solo dopo la validazione
+    expect((await uno(U.a, 'select count(*)::int n from public.lezioni')).n).toBe(0);
+    expect(await errore(U.a, `update public.lezioni set validata = true`)).toMatch(/row-level security|NESSUN/);
+    await righe(U.dir, `update public.lezioni set validata = true, validata_da = '${U.dir}', validata_il = now() where corso_id = '${C1}'`);
     expect((await uno(U.a, 'select count(*)::int n from public.lezioni')).n).toBe(1);
     expect((await uno(U.istAltro, 'select count(*)::int n from public.lezioni')).n).toBe(0);
     expect(await errore(U.dir, lezione(C2, '2026-10-05', null))).toMatch(/row-level security/);
@@ -148,6 +152,31 @@ describe('programma teorico', () => {
     await righe(U.dir, `insert into public.training_data (corso_id, user_id, location) values ('${C1}', '${U.a}', 'Viterbo')`);
     expect((await uno(U.a, 'select location from public.training_data')).location).toBe('Viterbo');
     expect((await uno(U.istAltro, 'select count(*)::int n from public.training_data')).n).toBe(0);
+  });
+
+  it('rapportino: lo compila un frequentatore, lo valida chi guida, poi si blocca', async () => {
+    const oggi = 'current_date';
+    expect(await righe(U.a, `insert into public.rapportini (corso_id, data) values ('${C1}', ${oggi}) returning id`)).toHaveLength(1);
+    expect(await errore(U.a, `insert into public.rapportini (corso_id, data) values ('${C1}', current_date + 1)`)).toMatch(/futura/);
+    expect(await errore(U.altro, `insert into public.rapportini (corso_id, data) values ('${C1}', current_date - 1)`)).toMatch(/row-level security/);
+    // un frequentatore segna le presenze di tutti, anche dei compagni
+    expect(await righe(U.a, `insert into public.presenze (corso_id, data, user_id, stato) values ('${C1}', ${oggi}, '${U.b}', 'assente') returning id`)).toHaveLength(1);
+    expect(await errore(U.a, `insert into public.presenze (corso_id, data, user_id, stato) values ('${C1}', ${oggi}, '${U.ist}', 'assente')`)).toMatch(/non è iscritto/);
+    expect(await errore(U.a, `insert into public.presenze (corso_id, data, user_id, stato, dalle) values ('${C1}', current_date - 1, '${U.a}', 'parziale', '08:00')`)).toMatch(/check/);
+    // il frequentatore non si valida il rapportino da solo
+    await righe(U.a, `update public.rapportini set validato_il = now(), validato_da = '${U.a}' where corso_id = '${C1}'`);
+    expect((await uno(U.a, `select validato_il from public.rapportini where corso_id = '${C1}'`)).validato_il).toBeNull();
+    await righe(U.dir, `update public.rapportini set validato_il = now() where corso_id = '${C1}'`);
+    expect((await uno(U.ist, `select validato_da from public.rapportini where corso_id = '${C1}'`)).validato_da).toBe(U.dir);
+    // validato: il frequentatore non tocca più né rapportino né presenze
+    // la riga validata sparisce dalle righe modificabili dal frequentatore: l'update non tocca nulla
+    await righe(U.a, `update public.rapportini set note = 'x' where corso_id = '${C1}'`);
+    expect((await uno(U.a, `select note from public.rapportini where corso_id = '${C1}'`)).note).toBe('');
+    await righe(U.a, `update public.presenze set stato = 'presente' where corso_id = '${C1}'`);
+    expect((await uno(U.a, `select stato from public.presenze where corso_id = '${C1}'`)).stato).toBe('assente');
+    await righe(U.dir, `update public.presenze set stato = 'presente' where corso_id = '${C1}'`);
+    expect((await uno(U.b, `select stato from public.presenze where corso_id = '${C1}'`)).stato).toBe('presente');
+    expect((await uno(U.istAltro, 'select count(*)::int n from public.presenze')).n).toBe(0);
   });
 
   it('account disattivato: non vede più nulla', async () => {

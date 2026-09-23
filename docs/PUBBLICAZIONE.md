@@ -23,13 +23,20 @@ Chi aveva già il database installato prima dei corsi deve, **una volta sola** e
    aggiunge il ruolo «direttore» e toglie dal database il catalogo dei task (ora sta nell'applicazione).
 2. `database/schema.sql` – nuove tabelle (corsi, iscrizioni, lezioni, abilitazioni), permessi per corso e tempo reale.
 
+## Aggiornamento presenze e validazioni (23/09/2026)
+
+Basta rieseguire **`database/schema.sql`** nel SQL Editor: aggiunge le tabelle `rapportini` e `presenze`, i campi
+`recupero`, `validata`, `validata_da` e `validata_il` delle lezioni, le relative policy (il frequentatore vede solo il
+programma validato, compila il rapportino finché non è validato) e la pubblicazione realtime delle nuove tabelle.
+Non serve alcuna migrazione dei dati: le lezioni già inserite restano non validate finché il direttore non le valida.
+
 ## Stato dell'installazione Supabase (22/09/2026)
 
 - Schema, sicurezza per corso (RLS) e tempo reale installati (`database/schema.sql`).
 - Edge Function `gestione-utenti` pubblicata con Verify JWT disattivato; registrazione libera disattivata.
 - Account **training.manager** (Training Manager) con password provvisoria, da cambiare al primo accesso.
 - Situazione esempio caricata con account propri. Credenziali nel file locale
-  `Desktop\Gestione Practical Type Training\Credenziali PTT (riservato).txt` (mai nel repository).
+  `Desktop\Gestione Practical Type Training\Credenziali Type Training (riservato).txt` (mai nel repository).
 - Prima dell'uso reale: SQL Editor → eseguire `database/elimina_esempio.sql` (toglie account e dati dell'esempio).
 
 Per ripetere l'installazione su un altro progetto: passi 2-4 della sezione A, poi
@@ -39,6 +46,24 @@ Per ripetere l'installazione su un altro progetto: passi 2-4 della sezione A, po
 > (vedi §7 del documento di progetto).
 
 ---
+
+## Archivio in uso dal 23/09/2026: repository GitHub
+
+Per non dipendere dai token Supabase l'app lavora sull'**archivio GitHub**. Repository già creati:
+
+- **`pier-200/tt-dati`** (privato): i dati del gestionale, un file JSON per collezione, un commit per salvataggio.
+- **`pier-200/tt-accessi`** (pubblico): solo `keyring.json`, il portachiavi **cifrato** (PBKDF2 600.000 + AES-GCM).
+
+`public/config.json` punta già a questi due repository. Resta da fare **una volta sola**:
+
+1. GitHub → **Settings → Developer settings → Fine-grained tokens → Generate new token**: accesso ai soli repository
+   `tt-dati` e `tt-accessi`, permesso **Contents: Read and write**, scadenza lunga. Copiare il token (`github_pat_…`).
+2. Aprire https://pier-200.github.io/GestionaleTypeTraining/ → **Configurazione iniziale**: incollare il token e
+   scegliere username, nome e password del Training Manager. Il token viene cifrato nel portachiavi: non va dato a nessuno.
+3. Da **Account** creare gli account di direttore, istruttori e frequentatori e iscriverli ai corsi.
+
+I dati rimasti sul progetto Supabase non vengono toccati: per tornarci basta rimettere `"tipo": "supabase"` in
+`public/config.json` (dopo aver rieseguito `database/schema.sql`) e ripubblicare.
 
 ## A. Archivio Supabase (consigliato)
 
@@ -110,20 +135,20 @@ con password provvisoria, e inserisce i Practical Type Training Data per l'inter
 Usa solo domini GitHub. Limite: i permessi sono applicati dall'app, quindi un utente esperto potrebbe modificare dati
 altrui direttamente su GitHub (ogni salvataggio resta comunque nella cronologia ed è recuperabile).
 
-1. Creare due repository: **`ptt-dati`** (Private, con README) e **`ptt-accessi`** (Public, con README; conterrà solo il
-   portachiavi cifrato).
+1. Creare due repository: uno **privato** per i dati e uno **pubblico** per il portachiavi cifrato (per questa
+   installazione: `tt-dati` e `tt-accessi`, già creati).
 2. **Settings → Developer settings → Fine-grained tokens → Generate new token**: accesso ai soli due repository,
    permesso **Contents: Read and write**, scadenza massima. Copiare il token (`github_pat_…`).
 3. In `public/config.json`:
 
    ```json
-   { "archivio": { "tipo": "github", "owner": "pier-200", "repoDati": "ptt-dati", "repoAccessi": "ptt-accessi" } }
+   { "archivio": { "tipo": "github", "owner": "pier-200", "repoDati": "tt-dati", "repoAccessi": "tt-accessi" } }
    ```
 
 4. Ripubblicare, aprire l'app e completare **Configurazione iniziale** con il token, lo username e la password del
    Training Manager.
 5. Quando il token scade o un utente lascia il corso: generare un token nuovo e ripetere la configurazione del portachiavi
-   (eliminare `keyring.json` da `ptt-accessi`, rientrare con lo **stesso** username del Training Manager: i dati restano),
+   (eliminare `keyring.json` da `tt-accessi`, rientrare con lo **stesso** username del Training Manager: i dati restano),
    poi reimpostare le password dei frequentatori da **Account e corso**.
 
 ---

@@ -5,14 +5,17 @@ import { Guscio } from './Guscio';
 import { Foglio } from './componenti/disegno';
 import { Accesso, PrimoAvvio } from './pagine/Accesso';
 import { Account } from './pagine/Account';
+import { Assenze } from './pagine/Assenze';
 import { Corsi } from './pagine/Corsi';
 import { Corso } from './pagine/Corso';
 import { Dati, FormAnagrafica } from './pagine/Dati';
 import { Distinta } from './pagine/Distinta';
+import { Docenti } from './pagine/Docenti';
 import { Generalita } from './pagine/Generalita';
 import { Istruttori } from './pagine/Istruttori';
 import { Logbook } from './pagine/Logbook';
 import { Materie } from './pagine/Materie';
+import { Rapportino } from './pagine/Rapportino';
 import { FormPassword, Profilo } from './pagine/Profilo';
 import { Report } from './pagine/Report';
 import { Settimana } from './pagine/Settimana';
@@ -34,7 +37,10 @@ const PAGINE: Record<string, Pagina> = {
   '/corsi': { titolo: 'Corsi', pagina: Corsi },
   '/corso': { titolo: 'Corso e iscritti', pagina: Corso, corso: true },
   '/settimana': { titolo: 'Programma settimanale', pagina: Settimana, corso: true },
+  '/rapportino': { titolo: 'Rapportino presenze', pagina: Rapportino, corso: true },
+  '/assenze': { titolo: 'Assenze e idoneità', pagina: Assenze, corso: true },
   '/teoria': { titolo: 'Situazione della teoria', pagina: Teoria, corso: true },
+  '/docenti': { titolo: 'Ore degli istruttori', pagina: Docenti, corso: true },
   '/materie': { titolo: 'Materie e istruttori', pagina: Materie, corso: true },
   '/distinta': { titolo: 'Situazione pratica', pagina: Distinta, corso: true },
   '/tavola': { titolo: 'Tavola', pagina: Tavola, corso: true },

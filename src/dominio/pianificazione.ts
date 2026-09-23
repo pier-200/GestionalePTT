@@ -54,8 +54,10 @@ export interface StatoTeorico {
 
 /** Conto a scalare del programma teorico rispetto alle lezioni già messe a calendario. */
 export function statoTeorico(programma: ProgrammaTeorico, lezioni: readonly Lezione[], oggi?: string): StatoTeorico {
+  // le lezioni di recupero ripetono materie già a programma: non scalano le ore da svolgere
+  const utili = lezioni.filter((l) => !l.recupero);
   const perMateria = new Map<string, number>();
-  for (const l of lezioni) perMateria.set(l.materia, (perMateria.get(l.materia) ?? 0) + l.minuti);
+  for (const l of utili) perMateria.set(l.materia, (perMateria.get(l.materia) ?? 0) + l.minuti);
   const materie = programma.materie.map((materia) => {
     const pianificati = Math.min(perMateria.get(materia.id) ?? 0, materia.minuti);
     return { materia, pianificati, residui: materia.minuti - pianificati };
@@ -72,7 +74,7 @@ export function statoTeorico(programma: ProgrammaTeorico, lezioni: readonly Lezi
     moduli,
     totale: { minuti, pianificati, residui: minuti - pianificati },
     prossima: materie.find((r) => r.residui > 0)?.materia,
-    svolti: oggi ? lezioni.filter((l) => l.data <= oggi).reduce((s, l) => s + l.minuti, 0) : 0,
+    svolti: oggi ? utili.filter((l) => l.data <= oggi).reduce((s, l) => s + l.minuti, 0) : 0,
   };
 }
 

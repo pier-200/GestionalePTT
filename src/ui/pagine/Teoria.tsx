@@ -1,19 +1,19 @@
 import { IconAlertTriangleFilled, IconCircleCheckFilled } from '@tabler/icons-react';
-import { oggiISO } from '../../dominio/motore';
+import { oggiISO, ruoloNelCorso } from '../../dominio/motore';
 import { statoTeorico } from '../../dominio/pianificazione';
 import { chapterMateria, oreDaMinuti, programmaTeorico } from '../../dominio/programmi';
-import { formatoData, lezioniDi, nomeUtente, ore } from '../../dominio/viste';
+import { formatoData, lezioniVisibili, nomeUtente, ore } from '../../dominio/viste';
 import { IntestazionePagina, Quota, ScalaQuote, Sezione } from '../componenti/disegno';
 import { useCorso } from '../navigazione';
 import { useStato } from '../stato';
 
 /** Conto a scalare della parte teorica: quanto è stato programmato, svolto e quanto resta. */
 export function Teoria() {
-  const { dati } = useStato();
+  const { dati, utente } = useStato();
   const corso = useCorso();
   const programma = programmaTeorico(corso?.programma_teorico);
-  if (!dati || !corso || !programma) return null;
-  const lezioni = lezioniDi(dati, corso.id);
+  if (!dati || !utente || !corso || !programma) return null;
+  const lezioni = lezioniVisibili(dati, corso.id, ruoloNelCorso(dati, utente, corso.id));
   const stato = statoTeorico(programma, lezioni, oggiISO());
   const settimanali = corso.minuti_giorno.reduce((s, m) => s + m, 0);
   const settimane = settimanali ? Math.ceil(stato.totale.residui / settimanali) : 0;

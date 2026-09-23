@@ -1,8 +1,9 @@
-import { indice, programmaPratico, type ProgrammaPratico } from './dominio/programmi';
+import { chapterMateria, indice, materiaDi, programmaPratico, programmaTeorico, type ProgrammaPratico } from './dominio/programmi';
 import type { Report, RigaReport } from './dominio/compliance';
-import { oggiISO } from './dominio/motore';
+import { oggiISO, type CampiLezione } from './dominio/motore';
+import { NOMI_GIORNI, giorniSettimana, orarioLezione } from './dominio/pianificazione';
 import type { Corso, Dati, Registrazione, Utente } from './dominio/tipi';
-import { esecuzione, frequentatori, istruttoriDi, nomeIstruttore, nomeUtente, situazione } from './dominio/viste';
+import { esecuzione, formatoData, frequentatori, istruttoriDi, nomeIstruttore, nomeUtente, situazione } from './dominio/viste';
 
 /** Esportazioni (PROGETTO_Logbook_PTT.md §5): Excel del singolo frequentatore, Excel complessivo, CSV. */
 
@@ -178,6 +179,53 @@ export async function esportaCorso(dati: Dati, corso: Corso) {
     righe: [intestazione(...COLONNE_CSV), ...righeCsv(dati, programma, dati.registrazioni.filter((r) => r.corso_id === corso.id)).map((r) => r.map((v, i) => (i === 7 ? data(String(v)) : v)))],
   };
   await scriviXlsx([riepilogo, grezzi], `Riepilogo_${pulisciNome(corso.codice)}_${oggiISO()}`);
+}
+
+/**
+ * Programma settimanale della parte teorica in Excel: un foglio con i periodi giorno per giorno.
+ * Formato provvisorio, da sostituire quando sarà disponibile il modulo ufficiale da compilare.
+ */
+export async function esportaSettimana(dati: Dati, corso: Corso, lunedi: string, lezioni: readonly CampiLezione[]) {
+  const programma = programmaTeorico(corso.programma_teorico);
+  if (!programma) throw new Error('Il corso non prevede la parte teorica.');
+  const giorni = giorniSettimana(lunedi);
+  const righe: Cella[][] = [
+    [{ v: 'Programma settimanale', b: true }, `${corso.codice} – ${corso.nome}`],
+    ['Programma', programma.nome],
+    ['Settimana', `dal ${formatoData(giorni[0])} al ${formatoData(giorni[4])}`],
+    ['Maintenance Organisation', corso.maintenance_organization || null],
+    ['Location', corso.location || null],
+    [],
+    intestazione('Giorno', 'Data', 'Dalle', 'Alle', 'Durata (min)', 'Modulo', 'Materia', 'Chapter', 'Istruttore', 'Tipo', 'Note'),
+  ];
+  let totale = 0;
+  giorni.forEach((giorno, i) => {
+    const delGiorno = lezioni.filter((l) => l.data === giorno).sort((a, b) => a.ordine - b.ordine);
+    if (!delGiorno.length) {
+      righe.push([NOMI_GIORNI[i], data(giorno), { v: '—', sfondo: GRIGIO }, null, null, null, { v: 'nessuna lezione', sfondo: GRIGIO }]);
+      return;
+    }
+    for (const l of delGiorno) {
+      const materia = materiaDi(programma, l.materia);
+      const orario = orarioLezione(corso, delGiorno, l.ordine);
+      totale += l.recupero ? 0 : l.minuti;
+      righe.push([
+        NOMI_GIORNI[i],
+        data(giorno),
+        orario.inizio,
+        orario.fine,
+        l.minuti,
+        materia ? `M${materia.modulo}` : null,
+        materia?.titolo ?? l.materia,
+        materia ? chapterMateria(materia) : null,
+        nomeUtente(dati, l.istruttore_id),
+        l.recupero ? 'Recupero' : 'Lezione',
+        l.note || null,
+      ]);
+    }
+  });
+  righe.push([], [{ v: 'Totale ore a programma nella settimana', b: true }, null, null, null, { v: totale, b: true }]);
+  await scriviXlsx([{ nome: 'Programma settimanale', righe, larghezze: [12, 12, 8, 8, 12, 9, 44, 26, 26, 12, 30] }], `Programma_${pulisciNome(corso.codice)}_${lunedi}`);
 }
 
 const COLONNE_CSV = ['Frequentatore', 'Task ID', 'Modulo', 'Chapter', 'Task type', 'Descrizione', 'Maintenance location', 'Data', 'Esecuzione', 'Matricola', 'ET (min)', 'Instructor', 'Modificato il', 'Modificato da'];
