@@ -109,7 +109,7 @@ describe('motore', () => {
     const crea: Comando = { tipo: 'utente.crea', utente: { id: 'x', username: 'nuovo.utente', ruolo: 'trainee', nome: '', istruttore_id: null }, password: 'password123' };
     expect(() => applica(dati, crea, ctx('u-gallo'))).toThrow();
     expect(applica(dati, crea, ctx('u-tm')).effetti).toEqual([{ tipo: 'credenziali.imposta', username: 'nuovo.utente', password: 'password123', admin: false }]);
-    expect(() => applica(dati, { ...crea, password: 'corta1' }, ctx('u-tm'))).toThrow(/10 caratteri/);
+    expect(() => applica(dati, { ...crea, password: 'ab' }, ctx('u-tm'))).toThrow(/4 caratteri/);
     const off = applica(dati, { tipo: 'utente.modifica', utente: { id: 'u-gallo', nome: '', attivo: false, istruttore_id: null } }, ctx('u-tm'));
     expect(off.effetti).toEqual([{ tipo: 'credenziali.rimuovi', username: 'matteo.gallo' }]);
     expect(() => applica(off.dati, reg('u-gallo'), ctx('u-gallo'))).toThrow(/non abilitato/);

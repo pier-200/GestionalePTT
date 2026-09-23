@@ -66,9 +66,14 @@ export const TIPI_ESECUZIONE: TipoEsecuzione[] = ['AC', 'SIM', 'CLA'];
 export const oggiISO = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+/**
+ * Lunghezza minima volutamente bassa (richiesta dell'utente: credenziali di avvio semplici).
+ * Con l'archivio GitHub la password protegge il token nel portachiavi: per i dati veri usarne una lunga.
+ */
+export const PASSWORD_MINIMA = 4;
+
 export function errorePassword(p: string): string | null {
-  if (p.length < 10) return 'La password deve contenere almeno 10 caratteri';
-  if (!/[A-Za-z]/.test(p) || !/\d/.test(p)) return 'La password deve contenere almeno una lettera e una cifra';
+  if (p.length < PASSWORD_MINIMA) return `La password deve contenere almeno ${PASSWORD_MINIMA} caratteri`;
   if (p.length > 128) return 'La password è troppo lunga';
   return null;
 }

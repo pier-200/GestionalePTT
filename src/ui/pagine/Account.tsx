@@ -122,7 +122,7 @@ function FormAccount({ esistente, chiudi }: { esistente: Utente | null; chiudi: 
         {attivo && (
           <TextInput
             label={esistente ? 'Nuova password provvisoria' : 'Password provvisoria'}
-            description={esistente ? (serveNuovaPassword ? 'Obbligatoria per riattivare l’account.' : 'Lasciare vuoto per non cambiarla.') : 'Almeno 10 caratteri con lettere e cifre.'}
+            description={esistente ? (serveNuovaPassword ? 'Obbligatoria per riattivare l’account.' : 'Lasciare vuoto per non cambiarla.') : 'Almeno 4 caratteri.'}
             value={password}
             onChange={(e) => setPassword(e.currentTarget.value)}
             error={errorePw}

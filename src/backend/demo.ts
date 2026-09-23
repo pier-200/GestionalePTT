@@ -1,12 +1,15 @@
 import { PASSWORD_DEMO, datiEsempio } from '../dati/esempio';
 import { ErroreApp } from '../dominio/errori';
 import { applica, errorePassword, oggiISO, type Comando } from '../dominio/motore';
-import type { Dati } from '../dominio/tipi';
+import { datiVuoti, type Dati } from '../dominio/tipi';
 import { PREFISSO, archivio, type Backend, type Sessione } from './tipi';
 
 const DATI = 'demo:dati';
 const PASSWORD = 'demo:password';
 const SESSIONE = 'demo:sessione';
+const VERSIONE = 'demo:versione';
+/** Da aumentare quando la situazione esempio cambia forma: i dati vecchi nel browser vengono rigenerati. */
+const FORMATO = '2026-09-23-presenze';
 
 /**
  * Archivio dimostrativo: i dati restano nel browser di chi apre l'app (localStorage),
@@ -21,9 +24,10 @@ export class DemoBackend implements Backend {
 
   private leggi(): Dati {
     const testo = this.locale.leggi(DATI);
-    if (testo) {
+    // dopo un aggiornamento dell'app i dati di prova salvati nel browser possono essere incompleti
+    if (testo && this.locale.leggi(VERSIONE) === FORMATO) {
       try {
-        return JSON.parse(testo) as Dati;
+        return { ...datiVuoti(), ...(JSON.parse(testo) as Partial<Dati>) };
       } catch {
         /* dati corrotti: si riparte dall'esempio */
       }
@@ -48,6 +52,7 @@ export class DemoBackend implements Backend {
   ripristinaEsempio(): Dati {
     const dati = datiEsempio();
     this.locale.scrivi(DATI, JSON.stringify(dati));
+    this.locale.scrivi(VERSIONE, FORMATO);
     this.locale.scrivi(PASSWORD, JSON.stringify(Object.fromEntries(dati.utenti.map((u) => [u.username, PASSWORD_DEMO]))));
     return dati;
   }

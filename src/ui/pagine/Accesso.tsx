@@ -193,7 +193,7 @@ export function PrimoAvvio() {
               <TextInput label="Grado, nome e cognome" value={v.nome} onChange={(e) => setV({ ...v, nome: e.currentTarget.value })} required />
               <PasswordInput
                 label="Password"
-                description={github ? 'Almeno 10 caratteri con lettere e cifre.' : 'La password dell’utente creato nel pannello Supabase.'}
+                description={github ? 'Almeno 4 caratteri: protegge il token, per i dati veri usarne una lunga.' : 'La password dell’utente creato nel pannello Supabase.'}
                 value={v.password}
                 onChange={(e) => setV({ ...v, password: e.currentTarget.value })}
                 required

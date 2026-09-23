@@ -35,7 +35,7 @@ export function FormPassword({ obbligatorio }: { obbligatorio?: boolean }) {
     >
       <Stack gap="sm" maw={420}>
         <PasswordInput label={obbligatorio ? 'Password provvisoria' : 'Password attuale'} value={v.attuale} onChange={(e) => setV({ ...v, attuale: e.currentTarget.value })} autoComplete="current-password" required />
-        <PasswordInput label="Nuova password" description="Almeno 10 caratteri con lettere e cifre." value={v.nuova} onChange={(e) => setV({ ...v, nuova: e.currentTarget.value })} autoComplete="new-password" required />
+        <PasswordInput label="Nuova password" description="Almeno 4 caratteri." value={v.nuova} onChange={(e) => setV({ ...v, nuova: e.currentTarget.value })} autoComplete="new-password" required />
         <PasswordInput label="Ripeti la nuova password" value={v.conferma} onChange={(e) => setV({ ...v, conferma: e.currentTarget.value })} autoComplete="new-password" required />
         {errore && (
           <Alert color="rosso" variant="light">
